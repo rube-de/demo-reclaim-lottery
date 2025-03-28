@@ -98,4 +98,23 @@ describe("Lottery", function () {
       expect(await lottery.prizeAmount()).to.equal(deposit1 + deposit2);
     });
   });
+
+  describe("endLottery()", function () {
+    it("Should allow owner to end active lottery", async function () {
+      await lottery.startLottery();
+      await expect(lottery.endLottery())
+        .to.emit(lottery, "LotteryEnded");
+      expect(await lottery.lotteryStatus()).to.equal(0); // Inactive
+    });
+
+    it("Should revert when non-owner tries to end", async function () {
+      await expect(lottery.connect(addr1).endLottery())
+        .to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("Should revert when lottery is already inactive", async function () {
+      await expect(lottery.endLottery())
+        .to.be.revertedWith("Lottery not active");
+    });
+  });
 });

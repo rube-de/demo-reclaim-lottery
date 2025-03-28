@@ -63,4 +63,15 @@ contract Lottery is Ownable, ReentrancyGuard {
         prizeAmount += msg.value;
         emit PrizeDeposited(msg.value);
     }
+
+    /**
+     * @dev Ends the active lottery
+     * @notice Only callable by owner
+     * @notice Requires lottery to be active
+     */
+    function endLottery() external onlyOwner {
+        require(lotteryStatus == LotteryStatus.Active, "Lottery not active");
+        lotteryStatus = LotteryStatus.Inactive;
+        emit LotteryEnded();
+    }
 }
