@@ -117,4 +117,56 @@ describe("Lottery", function () {
         .to.be.revertedWith("Lottery not active");
     });
   });
+
+  describe("pickWinner()", function () {
+    it("Should pick winner and transfer prize", async function () {
+      // Setup lottery with participants and prize
+      await lottery.startLottery();
+      await lottery.connect(addr1).enter();
+      await lottery.connect(addr2).enter();
+      await lottery.depositPrize({ value: ethers.parseEther("1.0") });
+      await lottery.endLottery();
+
+      // Store initial balances
+      const initialBalance1 = await ethers.provider.getBalance(addr1.address);
+      const initialBalance2 = await ethers.provider.getBalance(addr2.address);
+
+      // Pick winner - one of the participants should receive prize
+      await expect(lottery.pickWinner())
+        .to.emit(lottery, "WinnerPicked");
+
+      // Verify one participant received funds
+      const newBalance1 = await ethers.provider.getBalance(addr1.address);
+      const newBalance2 = await ethers.provider.getBalance(addr2.address);
+      const prize = ethers.parseEther("1.0");
+      expect(
+        newBalance1 > initialBalance1 || 
+        newBalance2 > initialBalance2
+      ).to.be.true;
+    });
+
+    it("Should revert when lottery is active", async function () {
+      await lottery.startLottery();
+      await expect(lottery.pickWinner())
+        .to.be.revertedWith("Lottery not ended");
+    });
+
+    it("Should revert when already picked winner", async function () {
+      await lottery.startLottery();
+      await lottery.connect(addr1).enter();
+      await lottery.depositPrize({ value: ethers.parseEther("1.0") });
+      await lottery.endLottery();
+      await lottery.pickWinner();
+      await expect(lottery.pickWinner())
+        .to.be.revertedWith("Winner already picked");
+    });
+
+    it("Should revert when no participants", async function () {
+      await lottery.startLottery();
+      await lottery.depositPrize({ value: ethers.parseEther("1.0") });
+      await lottery.endLottery();
+      await expect(lottery.pickWinner())
+        .to.be.revertedWith("No participants");
+    });
+  });
 });

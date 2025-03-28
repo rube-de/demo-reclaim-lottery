@@ -19,6 +19,7 @@ contract Lottery is Ownable, ReentrancyGuard {
     uint256 public maxParticipants;
 
     uint256 public prizeAmount;
+    bool public winnerPicked;
 
     event ParticipantEntered(address indexed participant);
     event LotteryStarted();
@@ -73,5 +74,54 @@ contract Lottery is Ownable, ReentrancyGuard {
         require(lotteryStatus == LotteryStatus.Active, "Lottery not active");
         lotteryStatus = LotteryStatus.Inactive;
         emit LotteryEnded();
+    }
+
+    /**
+     * @dev Picks a random winner and transfers the prize
+     * @notice Only callable by owner after lottery has ended
+     * @notice Uses block.prevrandao for pseudo-randomness (not secure for production)
+     */
+    function pickWinner() external onlyOwner nonReentrant {
+        require(lotteryStatus == LotteryStatus.Inactive, "Lottery not ended");
+        require(!winnerPicked, "Winner already picked");
+        require(participants.length() > 0, "No participants");
+
+        // Get pseudo-random index (demo only - not secure for production!)
+        uint256 randomIndex = uint256(keccak256(abi.encodePacked(
+            block.prevrandao,
+            block.timestamp,
+            participants.length()
+        ))) % participants.length();
+
+        address winner = participants.at(randomIndex);
+        uint256 prize = prizeAmount;
+
+        // Reset state before transfer to prevent reentrancy
+        winnerPicked = true;
+        prizeAmount = 0;
+        
+        // Transfer prize
+        (bool success, ) = winner.call{value: prize}("");
+        require(success, "Transfer failed");
+
+        emit WinnerPicked(winner, prize);
+    }
+
+    /**
+     * @dev Resets the lottery for a new round
+     * @notice Only callable by owner after winner is picked
+     */
+    function resetLottery() external onlyOwner {
+        require(winnerPicked, "Winner not picked yet");
+        
+        // Reset all state
+        while (participants.length() > 0) {
+            participants.remove(participants.at(0));
+        }
+        lotteryStatus = LotteryStatus.Inactive;
+        prizeAmount = 0;
+        winnerPicked = false;
+        
+        emit LotteryReset();
     }
 }
