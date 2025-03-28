@@ -1,0 +1,4 @@
+.clinerules/** merge=ours
+memory-bank/** merge=ours
+.clinerules/** linguist-generated=true
+memory-bank/** linguist-generated=true
