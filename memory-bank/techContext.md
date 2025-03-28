@@ -29,10 +29,20 @@ Or to test with custom maxParticipants:
 MAX_PARTICIPANTS=5 npx hardhat test
 ```
 
-4. Deploy with custom maxParticipants:
+4. Deploy contract:
 ```bash
-npx hardhat run scripts/deploy.ts --network sapphire-localnet --max-participants 1000
+# Deploy to local Hardhat network (testing)
+npx hardhat run scripts/deployLottery.ts --network hardhat
+
+# Deploy to sapphire-localnet with custom maxParticipants
+npx hardhat run scripts/deployLottery.ts --network sapphire-localnet --max-participants 1000
 ```
+
+Key deployment features:
+* Configurable maxParticipants (defaults to 1000)
+* Detailed deployment logs with contract address
+* Optional contract verification support
+* Error handling for invalid parameters
 
 ## Technical Decisions
 - Using configurable maxParticipants parameter instead of constant

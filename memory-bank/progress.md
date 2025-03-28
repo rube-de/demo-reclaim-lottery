@@ -11,10 +11,11 @@
 * Full test coverage for all functionality
 
 ## What's Left to Build
-1. Enhanced frontend integration
-2. Additional security audits
-3. Gas optimization analysis
-4. Production deployment setup
+1. Document security considerations (esp. randomness).
+2. Prepare deployment scripts/instructions.
+3. (Optional) Gas optimization analysis.
+4. (Optional) Frontend integration examples.
+5. (Optional) Formal security audit.
 
 ## Current Status
 * Core contract fully implemented

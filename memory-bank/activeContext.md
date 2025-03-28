@@ -1,28 +1,25 @@
 # Active Context
 
 ## Current Focus
-* Documentation updates completed
-* Preparing to implement endLottery/pickWinner functionality
+* Finalizing documentation before moving to deployment preparation.
+* Decision made to skip gas optimization for now.
 
 ## Recent Changes
-* Implemented and tested depositPrize() functionality
-* Updated all documentation to current state
-* Added comprehensive test coverage for:
-  - Owner-only deposit enforcement
-  - Prize amount accumulation
-  - Event emissions
-* Fixed documentation inconsistencies
+* Completed implementation of all core lottery functions (start, enter, deposit, end, pickWinner, reset).
+* Added view functions (getParticipants, getParticipantCount, getLotteryDetails).
+* Ensured comprehensive test coverage for all implemented features.
+* Updated all memory bank files to reflect current state.
+* Reviewed potential gas optimizations and decided against implementing them at this stage.
 
 ## Next Steps
-1. Implement endLottery() function
-2. Develop pickWinner() with randomness
-3. Add comprehensive test coverage
-4. Document randomness approach limitations
+1. Document security considerations, especially pseudo-randomness.
+2. Prepare deployment scripts and instructions.
+3. Consider frontend integration examples.
 
 ## Active Decisions & Considerations
-* Using call() instead of transfer() for prize payouts
-* Need to document pseudo-randomness limitations
-* Considering adding participant count view function
+* Gas optimization deferred to prioritize core functionality completion.
+* Sticking with `call()` for prize transfer due to safety.
+* Pseudo-randomness approach (block variables) accepted for demo purposes, needs clear documentation.
 
 ## Active Decisions & Considerations
 * Using OpenZeppelin's EnumerableSet for participant tracking
