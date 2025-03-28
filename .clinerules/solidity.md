@@ -101,3 +101,5 @@
 ---
 
 **Instruction to AI:** Apply these rules rigorously when writing or refactoring Solidity code. Prioritize security above all else. Use NatSpec for documentation. Implement gas optimizations thoughtfully, ensuring they do not compromise security or readability. Explain choices related to security patterns or significant gas optimizations.
+
+test123
