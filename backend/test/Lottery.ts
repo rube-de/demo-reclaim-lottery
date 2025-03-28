@@ -169,4 +169,33 @@ describe("Lottery", function () {
         .to.be.revertedWith("No participants");
     });
   });
+
+  describe("View Functions", function () {
+    it("Should return participant list", async function () {
+      await lottery.startLottery();
+      await lottery.connect(addr1).enter();
+      await lottery.connect(addr2).enter();
+      
+      const participants = await lottery.getParticipants();
+      expect(participants).to.have.lengthOf(2);
+      expect(participants).to.include(addr1.address);
+      expect(participants).to.include(addr2.address);
+    });
+
+    it("Should return participant count", async function () {
+      await lottery.startLottery();
+      expect(await lottery.getParticipantCount()).to.equal(0);
+      await lottery.connect(addr1).enter();
+      expect(await lottery.getParticipantCount()).to.equal(1);
+    });
+
+    it("Should return lottery details", async function () {
+      const details = await lottery.getLotteryDetails();
+      expect(details.status).to.equal(0); // Inactive
+      expect(details.participantCount).to.equal(0);
+      expect(details.currentPrize).to.equal(0);
+      expect(details.maxParticipants).to.equal(TEST_MAX_PARTICIPANTS);
+      expect(details.isWinnerPicked).to.be.false;
+    });
+  });
 });

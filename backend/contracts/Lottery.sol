@@ -124,4 +124,46 @@ contract Lottery is Ownable, ReentrancyGuard {
         
         emit LotteryReset();
     }
+
+    /**
+     * @dev Returns array of all participant addresses
+     */
+    function getParticipants() external view returns (address[] memory) {
+        address[] memory participantArray = new address[](participants.length());
+        for (uint256 i = 0; i < participants.length(); i++) {
+            participantArray[i] = participants.at(i);
+        }
+        return participantArray;
+    }
+
+    /**
+     * @dev Returns current number of participants
+     */
+    function getParticipantCount() external view returns (uint256) {
+        return participants.length();
+    }
+
+    /**
+     * @dev Returns key lottery details in one call
+     * @return status Current lottery status
+     * @return participantCount Number of participants
+     * @return currentPrize Total prize amount
+     * @return maxParticipants Maximum allowed participants
+     * @return isWinnerPicked If winner was already selected
+     */
+    function getLotteryDetails() external view returns (
+        LotteryStatus status,
+        uint256 participantCount,
+        uint256 currentPrize,
+        uint256 maxParticipants,
+        bool isWinnerPicked
+    ) {
+        return (
+            lotteryStatus,
+            participants.length(),
+            prizeAmount,
+            maxParticipants,
+            winnerPicked
+        );
+    }
 }
