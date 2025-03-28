@@ -94,7 +94,7 @@
      12. Internal functions
      13. Private functions
    - **Visibility:** Explicitly declare visibility for all state variables and functions.
-   - **Error Messages:** Use concise, specific error strings in `require` and `revert` statements (e.g., `require(balance >= _amount, "ERC20: insufficient balance");`). Consider custom errors (`error InsufficientBalance(uint256 requested, uint256 available);`) for gas savings and better off-chain decoding (Solidity >= 0.8.4).
+   - **Error Messages:** If possible always use custom errors (`error InsufficientBalance(uint256 requested, uint256 available);`) for gas savings and better off-chain decoding (Solidity >= 0.8.4).
    - **Formatting:** Use consistent indentation (4 spaces), line length (e.g., 120 characters max), and spacing around operators. Use tools like Prettier with a Solidity plugin.
    - **Imports:** Use specific imports (`import {Symbol} from "Contract.sol";`) rather than importing whole files (`import "Contract.sol";`).
 

@@ -1,30 +1,39 @@
 # Active Context
 
 ## Current Focus
-
-*   What is the immediate goal or feature being worked on?
-*   What task is currently in progress?
+* Documentation updates completed
+* Preparing to implement endLottery/pickWinner functionality
 
 ## Recent Changes
-
-*   What significant modifications were made recently?
-*   Link to relevant commits or PRs if applicable.
+* Implemented and tested depositPrize() functionality
+* Updated all documentation to current state
+* Added comprehensive test coverage for:
+  - Owner-only deposit enforcement
+  - Prize amount accumulation
+  - Event emissions
+* Fixed documentation inconsistencies
 
 ## Next Steps
-
-*   What are the planned next actions or tasks?
-*   Are there any dependencies or blockers?
+1. Implement endLottery() function
+2. Develop pickWinner() with randomness
+3. Add comprehensive test coverage
+4. Document randomness approach limitations
 
 ## Active Decisions & Considerations
+* Using call() instead of transfer() for prize payouts
+* Need to document pseudo-randomness limitations
+* Considering adding participant count view function
 
-*   What design choices or trade-offs are currently being evaluated?
-*   Are there any open questions or areas needing clarification?
+## Active Decisions & Considerations
+* Using OpenZeppelin's EnumerableSet for participant tracking
+* Implementing ReentrancyGuard for prize distribution safety
+* Using block.timestamp/prevrandao for pseudo-randomness (with clear documentation of limitations)
 
 ## Important Patterns & Preferences
-
-*   Are there any specific coding patterns, architectural choices, or user preferences that are particularly relevant to the current work?
-*   Reference `systemPatterns.md` or `techContext.md` if applicable.
+* Following TDD approach (Red-Green-Refactor)
+* Using NatSpec documentation throughout
+* Adhering to Solidity style guide from .clinerules
 
 ## Learnings & Insights
-
-*   Have there been any recent discoveries, challenges overcome, or insights gained that should be recorded?
+* Need to be explicit about pseudo-randomness limitations in documentation
+* Prize distribution will use call() instead of transfer() for better compatibility

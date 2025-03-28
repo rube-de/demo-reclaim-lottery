@@ -1,26 +1,30 @@
 # Progress
 
 ## What Works
-
-*   Describe the features or components that are currently implemented and functioning correctly.
-*   What parts of the system are stable?
+* Contract with configurable maxParticipants
+* All entry validation tests passing
+* Proper participant limit enforcement
+* Tests for different maxParticipants values
+* Prize deposit functionality implemented
+* Owner-only deposit enforcement
+* Prize amount accumulation working
 
 ## What's Left to Build
-
-*   Outline the remaining features, components, or tasks required to meet the project goals (as defined in `projectBrief.md`).
-*   What is the scope of future work?
+1. Implement `endLottery()` function
+2. Implement `pickWinner()` functionality
+3. Add prize distribution tests  
+4. Implement `resetLottery()` function
+5. Complete remaining test coverage
 
 ## Current Status
-
-*   Provide a snapshot of the project's overall progress.
-*   Are there any major milestones achieved or upcoming?
+* Core contract structure complete
+* Participant management working
+* Prize deposit functionality implemented
+* Ready for lottery conclusion logic
 
 ## Known Issues
-
-*   List any known bugs, limitations, or areas needing improvement.
-*   Reference issue tracker IDs if applicable.
+* None yet - all initial tests passing
 
 ## Evolution of Project Decisions
-
-*   Document significant changes in direction, scope, or requirements that have occurred over time.
-*   How has the project evolved from its initial conception?
+* Changed from Ownable constructor with initial owner to default Ownable pattern
+* Added ReentrancyGuard early for future security
