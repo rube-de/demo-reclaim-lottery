@@ -4,3 +4,8 @@ node_modules/
 frontend/dist
 frontend/playwright-report
 frontend/test-results
+
+# dev
+.clinerules/
+.cursorrules/
+memory-bank/
