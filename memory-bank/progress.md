@@ -11,6 +11,8 @@
 * Uses OpenZeppelin Contracts v5.2.0.
 * Uses named imports for Solidity.
 * Uses custom errors defined within contract scope.
+* Backend documentation (`backend/README.md`) created.
+* Contribution guidelines (`CONTRIBUTING.md`) created.
 
 ## What's Left to Build
 1. Document security considerations (esp. conditional randomness).
@@ -24,7 +26,8 @@
 * Test suite adapted for Sapphire network limitations and custom error checks.
 * OpenZeppelin dependency updated to v5.2.0.
 * Imports refactored to named imports.
-* Ready for documentation updates and deployment preparation.
+* Documentation (`backend/README.md`, `CONTRIBUTING.md`) created and refined.
+* Ready for next steps (security documentation, deployment prep).
 
 ## Known Issues
 * None yet - all initial tests passing

@@ -64,7 +64,7 @@ Key deployment features:
 ## Tool Usage Patterns
 * **Hardhat**:
   - Using TypeScript for all tests and scripts
-  - Solidity style guide from .clinerules
+  - Solidity style guide from .clinerules and general clean code principles.
 * **Testing**:
   - AAA pattern (Arrange-Act-Assert)
   - Full coverage for all functions
