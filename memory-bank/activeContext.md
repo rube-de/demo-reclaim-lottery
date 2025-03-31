@@ -1,36 +1,42 @@
 # Active Context
 
 ## Current Focus
-* Finalizing documentation before moving to deployment preparation.
-* Decision made to skip gas optimization for now.
+* Preparing for deployment.
 
 ## Recent Changes
-* Completed implementation of all core lottery functions (start, enter, deposit, end, pickWinner, reset).
-* Added view functions (getParticipants, getParticipantCount, getLotteryDetails).
-* Ensured comprehensive test coverage for all implemented features.
-* Updated all memory bank files to reflect current state.
-* Reviewed potential gas optimizations and decided against implementing them at this stage.
+* Implemented conditional randomness in `Lottery.sol` (`_getRandomIndex`) using `Sapphire.randomBytes` on Sapphire networks and pseudo-randomness otherwise.
+* Refactored `Lottery.sol` layout according to style guide.
+* Updated tests (`Lottery.ts`) to handle Sapphire network specifics:
+    * Skipped Chai matcher checks (`emit`, `revertedWith`) on non-hardhat networks.
+    * Added `await tx.wait()` before checking for reverts on Sapphire.
+    * Updated revert checks on Sapphire to look for `"transaction execution reverted"` string.
+* Updated memory bank (`systemPatterns.md`, `techContext.md`, `activeContext.md`, `progress.md`).
 
 ## Next Steps
-1. Document security considerations, especially pseudo-randomness.
-2. Prepare deployment scripts and instructions.
+1. Document the conditional randomness approach and its security implications (pseudo-randomness fallback).
+2. Prepare/finalize deployment scripts (`deployLottery.ts`, potentially others).
 3. Consider frontend integration examples.
 
 ## Active Decisions & Considerations
-* Gas optimization deferred to prioritize core functionality completion.
-* Sticking with `call()` for prize transfer due to safety.
-* Pseudo-randomness approach (block variables) accepted for demo purposes, needs clear documentation.
+* Gas optimization deferred.
+* Using `call()` for prize transfer.
+* Conditional randomness implemented (`Sapphire.randomBytes` vs. pseudo-random).
+* Test strategy adapted for Sapphire network limitations (skip matchers, use `await tx.wait()`, check specific revert string).
 
 ## Active Decisions & Considerations
-* Using OpenZeppelin's EnumerableSet for participant tracking
-* Implementing ReentrancyGuard for prize distribution safety
-* Using block.timestamp/prevrandao for pseudo-randomness (with clear documentation of limitations)
+* Using OpenZeppelin's EnumerableSet for participant tracking.
+* Implementing ReentrancyGuard for prize distribution safety.
+* Using conditional randomness (`Sapphire.randomBytes` or pseudo-random based on chain ID).
 
 ## Important Patterns & Preferences
 * Following TDD approach (Red-Green-Refactor)
 * Using NatSpec documentation throughout
 * Adhering to Solidity style guide from .clinerules
+* **CRITICAL:** When using `execute_command`, **DO NOT** escape `&&` as `&&`. Use the standard `&&` for command chaining.
+* **Sapphire Testing:** Chai matchers (`.to.emit`, `.to.be.revertedWith`) are incompatible with `sapphire-localnet`. Tests checking reverts/events must be conditional (`if (network.name === 'hardhat')`). For Sapphire networks, use `try...catch`, call `await tx.wait()` inside the `try` block (where `tx` is the transaction promise), and check for `error.message.includes("transaction execution reverted")` in the `catch` block to verify reverts.
 
 ## Learnings & Insights
-* Need to be explicit about pseudo-randomness limitations in documentation
-* Prize distribution will use call() instead of transfer() for better compatibility
+* Need to be explicit about pseudo-randomness limitations in documentation (especially the fallback).
+* Prize distribution uses `call()` for compatibility.
+* Testing reverts on Sapphire requires `await tx.wait()` and checking the specific error message string `"transaction execution reverted"`.
+* Shell command chaining requires standard `&&`, not `&&`.

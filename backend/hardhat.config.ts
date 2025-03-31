@@ -17,9 +17,8 @@ const TEST_HDWALLET: HDAccountsUserConfig = {
   count: 20,
   passphrase: '',
 }
-const firstPrivateKey = Wallet.fromPhrase(TEST_HDWALLET.mnemonic).privateKey
 
-const accounts = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [firstPrivateKey]
+const accounts = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : TEST_HDWALLET;
 
 const config: HardhatUserConfig = {
   networks: {

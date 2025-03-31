@@ -69,3 +69,4 @@ Key deployment features:
   - AAA pattern (Arrange-Act-Assert)
   - Full coverage for all functions
   - Edge case testing (0 participants, max participants)
+  - **Sapphire Specifics:** Chai matchers (`.to.emit`, `.to.be.revertedWith`) are incompatible with `sapphire-localnet`. Tests checking reverts/events must be conditional (`if (network.name === 'hardhat')`). For Sapphire networks, use `try...catch`, call `await tx.wait()` inside the `try` block (where `tx` is the transaction promise), and check for `error.message.includes("transaction execution reverted")` in the `catch` block to verify reverts.
