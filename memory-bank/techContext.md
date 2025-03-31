@@ -3,7 +3,7 @@
 ## Technologies Used
 * **Solidity**: ^0.8.20 (with SafeMath not needed due to built-in overflow checks)
 * **Hardhat**: ^2.12.0 (development framework)
-* **OpenZeppelin Contracts**: ^4.8.0 (for Ownable, EnumerableSet, ReentrancyGuard)
+* **OpenZeppelin Contracts**: ^5.2.0 (for Ownable, EnumerableSet, ReentrancyGuard)
 * **Ethers.js**: ^5.7.2 (for testing)
 * **Chai**: ^4.3.7 (assertion library)
 * **TypeScript**: ^4.9.5 (for tests and scripts)
@@ -56,7 +56,7 @@ Key deployment features:
 * Sapphire-localnet test network requirements
 
 ## Dependencies
-* **OpenZeppelin Contracts**:
+* **OpenZeppelin Contracts (^5.2.0)**:
   - Ownable: For owner-restricted functions
   - EnumerableSet: For efficient participant management
   - ReentrancyGuard: For secure prize distribution
@@ -64,8 +64,9 @@ Key deployment features:
 ## Tool Usage Patterns
 * **Hardhat**:
   - Using TypeScript for all tests and scripts
-  - Solidity style guide from .clinerules
+  - Solidity style guide from .clinerules and general clean code principles.
 * **Testing**:
   - AAA pattern (Arrange-Act-Assert)
   - Full coverage for all functions
   - Edge case testing (0 participants, max participants)
+  - **Sapphire Specifics:** Chai matchers (`.to.emit`) are incompatible with `sapphire-localnet`. Tests checking events must be conditional (`if (network.name === 'hardhat')`). For reverts, Hardhat tests use `revertedWithCustomError` (including for inherited errors like `OwnableUnauthorizedAccount`), while Sapphire network tests use `try...catch`, call `await tx.wait()` inside the `try` block, and check for `error.message.includes("transaction execution reverted")` in the `catch` block.

@@ -2,8 +2,9 @@
 
 ## System Architecture
 * Single smart contract design (Lottery.sol)
-* Uses OpenZeppelin's base contracts for security and functionality
-* Event-driven architecture for tracking lottery state changes
+* Uses OpenZeppelin's v5 base contracts for security and functionality (Ownable, ReentrancyGuard, EnumerableSet).
+* Event-driven architecture for tracking lottery state changes.
+* Uses Solidity Custom Errors for reverts.
 
 ## Key Technical Decisions
 1. **Participant Management**:
@@ -15,10 +16,11 @@
    - Using call() instead of transfer() for wider compatibility
    - Protected by ReentrancyGuard to prevent attacks
 
-3. **Randomness**:
-   - Using block.timestamp/prevrandao for pseudo-randomness
-   - Trade-off: Not truly random but sufficient for demo purposes
-   - Alternative: Chainlink VRF would be more secure but complex
+ 3. **Randomness**:
+    - Implemented conditional randomness via internal `_getRandomIndex` function.
+    - Uses `Sapphire.randomBytes` precompile on Sapphire networks (Mainnet, Testnet, Localnet - checked via `block.chainid`).
+    - Falls back to insecure `keccak256(abi.encodePacked(block.prevrandao, block.timestamp, participantCount))` on other networks (e.g., Hardhat local).
+    - Trade-off: Provides secure randomness on target networks while allowing testing/development on standard EVM chains.
 
 ## Design Patterns in Use
 * **Ownership Pattern**: Using OpenZeppelin's Ownable for admin functions
@@ -43,9 +45,8 @@ flowchart TD
      * Active status check
      * Participant limit enforcement
      * Unique address requirement
-   - Owner ends lottery (endLottery)
-   - Owner picks winner (pickWinner) using:
-     * Block-based pseudo-randomness
-     * Reentrancy protection
-   - Contract transfers prize to winner via call()
-   - Owner can reset lottery for new round
+    - Owner ends lottery (endLottery)
+    - Owner picks winner (pickWinner), which calls internal `_getRandomIndex` for network-appropriate randomness.
+    - `pickWinner` uses ReentrancyGuard.
+    - Contract transfers prize to winner via `call()`.
+    - Owner can reset lottery for new round (`resetLottery`).
