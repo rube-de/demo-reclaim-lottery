@@ -6,8 +6,11 @@
 * Prize deposit and distribution system.
 * Conditional randomness (`Sapphire.randomBytes` on Sapphire, pseudo-random fallback).
 * Comprehensive view functions (`getParticipants`, `getParticipantCount`, `getLotteryDetails`).
-* Full test coverage for all functionality (with conditional checks for Sapphire compatibility).
+* Full test coverage for all functionality (with conditional checks for Sapphire compatibility and custom error checks on Hardhat).
 * Contract layout follows Solidity Style Guide.
+* Uses OpenZeppelin Contracts v5.2.0.
+* Uses named imports for Solidity.
+* Uses custom errors defined within contract scope.
 
 ## What's Left to Build
 1. Document security considerations (esp. conditional randomness).
@@ -17,8 +20,10 @@
 5. (Optional) Formal security audit.
 
 ## Current Status
-* Core contract logic complete and tested on Hardhat & Sapphire localnet.
-* Test suite adapted for Sapphire network limitations.
+* Core contract logic complete and tested on Hardhat & Sapphire localnet with custom errors.
+* Test suite adapted for Sapphire network limitations and custom error checks.
+* OpenZeppelin dependency updated to v5.2.0.
+* Imports refactored to named imports.
 * Ready for documentation updates and deployment preparation.
 
 ## Known Issues

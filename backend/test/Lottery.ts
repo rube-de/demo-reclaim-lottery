@@ -95,8 +95,8 @@ describe("Lottery", function () {
       const action = lottery.connect(addr1).enter();
 
       if (network.name === 'hardhat') {
-        // Hardhat specific: Check revert message
-        await expect(action).to.be.revertedWith("Lottery inactive");
+        // Hardhat specific: Check custom error
+        await expect(action).to.be.revertedWithCustomError(lottery, "LotteryNotActive");
       } else {
         // console.warn(`Skipping specific revert check on network: ${network.name}`);
         // Other networks: Check for any revert
@@ -127,8 +127,8 @@ describe("Lottery", function () {
       const action = lottery.connect(addr1).enter();
 
       if (network.name === 'hardhat') {
-        // Hardhat specific: Check revert message
-        await expect(action).to.be.revertedWith("Already entered");
+        // Hardhat specific: Check custom error
+        await expect(action).to.be.revertedWithCustomError(lottery, "AlreadyEntered");
       } else {
         // console.warn(`Skipping specific revert check on network: ${network.name}`);
         // Other networks: Check for any revert
@@ -158,16 +158,12 @@ describe("Lottery", function () {
       // Use another signer for the exceeding entry attempt
       const exceedingSigner = addr5; 
 
-      // get balance of exceedingSigner
-      const balance = await ethers.provider.getBalance(await exceedingSigner.getAddress());
-      console.log(`Exceeding Signer(${await exceedingSigner.getAddress()}) Balance: ${ethers.formatEther(balance)} ETH`);
-
       // Action is common: Try to enter with the exceeding signer
       const action = lottery.connect(exceedingSigner).enter();
 
       if (network.name === 'hardhat') {
-        // Hardhat specific: Check revert message
-        await expect(action).to.be.revertedWith("Lottery full");
+        // Hardhat specific: Check custom error
+        await expect(action).to.be.revertedWithCustomError(lottery, "LotteryFull");
       } else {
         // console.warn(`Skipping specific revert check on network: ${network.name}`);
          // Other networks: Check for any revert
@@ -207,8 +203,8 @@ describe("Lottery", function () {
       const action = lottery.connect(addr1).depositPrize({ value: depositAmount });
 
       if (network.name === 'hardhat') {
-         // Hardhat specific: Check revert message
-        await expect(action).to.be.revertedWith("Ownable: caller is not the owner");
+         // Hardhat specific: Check custom error (Ownable v5 uses OwnableUnauthorizedAccount)
+        await expect(action).to.be.revertedWithCustomError(lottery, "OwnableUnauthorizedAccount").withArgs(await addr1.getAddress());
       } else {
         // console.warn(`Skipping specific revert check on network: ${network.name}`);
         // Other networks: Check for any revert
@@ -258,8 +254,8 @@ describe("Lottery", function () {
       const action = lottery.connect(addr1).endLottery();
 
       if (network.name === 'hardhat') {
-        // Hardhat specific: Check revert message
-        await expect(action).to.be.revertedWith("Ownable: caller is not the owner");
+        // Hardhat specific: Check custom error (Ownable v5 uses OwnableUnauthorizedAccount)
+        await expect(action).to.be.revertedWithCustomError(lottery, "OwnableUnauthorizedAccount").withArgs(await addr1.getAddress());
       } else {
         // console.warn(`Skipping specific revert check on network: ${network.name}`);
         // Other networks: Check for any revert
@@ -279,8 +275,8 @@ describe("Lottery", function () {
       const action = lottery.connect(owner).endLottery();
 
       if (network.name === 'hardhat') {
-        // Hardhat specific: Check revert message
-        await expect(action).to.be.revertedWith("Lottery not active");
+        // Hardhat specific: Check custom error
+        await expect(action).to.be.revertedWithCustomError(lottery, "LotteryNotActive");
       } else {
         // console.warn(`Skipping specific revert check on network: ${network.name}`);
         // Other networks: Check for any revert
@@ -348,8 +344,8 @@ describe("Lottery", function () {
       const action = lottery.connect(owner).pickWinner();
 
       if (network.name === 'hardhat') {
-        // Hardhat specific: Check revert message
-        await expect(action).to.be.revertedWith("Lottery not ended");
+        // Hardhat specific: Check custom error
+        await expect(action).to.be.revertedWithCustomError(lottery, "LotteryNotEnded");
       } else {
         // console.warn(`Skipping specific revert check on network: ${network.name}`);
         // Other networks: Check for any revert
@@ -376,8 +372,8 @@ describe("Lottery", function () {
       const action = lottery.connect(owner).pickWinner();
 
       if (network.name === 'hardhat') {
-        // Hardhat specific: Check revert message
-        await expect(action).to.be.revertedWith("Winner already picked");
+        // Hardhat specific: Check custom error
+        await expect(action).to.be.revertedWithCustomError(lottery, "WinnerAlreadyPicked");
       } else {
         // console.warn(`Skipping specific revert check on network: ${network.name}`);
         // Other networks: Check for any revert
@@ -402,8 +398,8 @@ describe("Lottery", function () {
       const action = lottery.connect(owner).pickWinner();
 
       if (network.name === 'hardhat') {
-        // Hardhat specific: Check revert message
-        await expect(action).to.be.revertedWith("No participants");
+        // Hardhat specific: Check custom error
+        await expect(action).to.be.revertedWithCustomError(lottery, "NoParticipants");
       } else {
         // console.warn(`Skipping specific revert check on network: ${network.name}`);
         // Other networks: Check for any revert

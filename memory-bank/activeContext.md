@@ -10,12 +10,15 @@
     * Skipped Chai matcher checks (`emit`, `revertedWith`) on non-hardhat networks.
     * Added `await tx.wait()` before checking for reverts on Sapphire.
     * Updated revert checks on Sapphire to look for `"transaction execution reverted"` string.
+* Upgraded OpenZeppelin Contracts dependency to v5.2.0.
+* Refactored `Lottery.sol` imports to use named imports.
+* Replaced `require` string messages with custom errors (defined within contract scope).
+* Corrected `ReentrancyGuard` import path for OpenZeppelin v5.
+* Updated Hardhat tests to use `revertedWithCustomError` for both contract-defined and inherited custom errors (e.g., `OwnableUnauthorizedAccount`).
 * Updated memory bank (`systemPatterns.md`, `techContext.md`, `activeContext.md`, `progress.md`).
 
 ## Next Steps
-1. Document the conditional randomness approach and its security implications (pseudo-randomness fallback).
-2. Prepare/finalize deployment scripts (`deployLottery.ts`, potentially others).
-3. Consider frontend integration examples.
+1. Add README.md to the backend (smart contracts) directory.
 
 ## Active Decisions & Considerations
 * Gas optimization deferred.
@@ -33,7 +36,7 @@
 * Using NatSpec documentation throughout
 * Adhering to Solidity style guide from .clinerules
 * **CRITICAL:** When using `execute_command`, **DO NOT** escape `&&` as `&&`. Use the standard `&&` for command chaining.
-* **Sapphire Testing:** Chai matchers (`.to.emit`, `.to.be.revertedWith`) are incompatible with `sapphire-localnet`. Tests checking reverts/events must be conditional (`if (network.name === 'hardhat')`). For Sapphire networks, use `try...catch`, call `await tx.wait()` inside the `try` block (where `tx` is the transaction promise), and check for `error.message.includes("transaction execution reverted")` in the `catch` block to verify reverts.
+* **Sapphire Testing:** Chai matchers (`.to.emit`) are incompatible with `sapphire-localnet`. Tests checking events must be conditional (`if (network.name === 'hardhat')`). For reverts, Hardhat tests use `revertedWithCustomError` (including for inherited errors like `OwnableUnauthorizedAccount`), while Sapphire network tests use `try...catch`, call `await tx.wait()` inside the `try` block, and check for `error.message.includes("transaction execution reverted")` in the `catch` block.
 
 ## Learnings & Insights
 * Need to be explicit about pseudo-randomness limitations in documentation (especially the fallback).

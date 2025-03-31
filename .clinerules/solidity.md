@@ -94,7 +94,7 @@
      12. Internal functions
      13. Private functions
    - **Visibility:** Explicitly declare visibility for all state variables and functions.
-   - **Error Messages:** If possible always use custom errors (`error InsufficientBalance(uint256 requested, uint256 available);`) instead of reverts with string message for gas savings and better off-chain decoding (Solidity >= 0.8.4).
+   - **Error Messages:** If possible always use custom errors (`error InsufficientBalance(uint256 requested, uint256 available);`) in require statements instead of require statements with string message for gas savings and better off-chain decoding (Solidity >= 0.8.26, https://soliditylang.org/blog/2024/05/21/solidity-0.8.26-release-announcement).
    - **Formatting:** Use consistent indentation (4 spaces), line length (e.g., 120 characters max), and spacing around operators. Use tools like Prettier with a Solidity plugin.
    - **Imports:** Use specific imports (`import {Symbol} from "Contract.sol";`) rather than importing whole files (`import "Contract.sol";`).
    - **Magic Numbers:** Never use fixed numeric literals directly in your code. Always define these numbers as named constants with descriptive names, ensuring that any changes need to be made in only one place, which improves readability and maintainability.

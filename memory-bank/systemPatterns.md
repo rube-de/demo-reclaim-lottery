@@ -2,8 +2,9 @@
 
 ## System Architecture
 * Single smart contract design (Lottery.sol)
-* Uses OpenZeppelin's base contracts for security and functionality
-* Event-driven architecture for tracking lottery state changes
+* Uses OpenZeppelin's v5 base contracts for security and functionality (Ownable, ReentrancyGuard, EnumerableSet).
+* Event-driven architecture for tracking lottery state changes.
+* Uses Solidity Custom Errors for reverts.
 
 ## Key Technical Decisions
 1. **Participant Management**:

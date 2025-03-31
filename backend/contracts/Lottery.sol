@@ -4,9 +4,9 @@ pragma solidity ^0.8.20;
 // ====================================================================
 // Imports
 // ====================================================================
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; // Corrected path for OZ v5+
 import {Sapphire} from "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol"; // Import Sapphire library
 
 /**
@@ -18,6 +18,20 @@ contract Lottery is Ownable, ReentrancyGuard {
     // Libraries
     // ====================================================================
     using EnumerableSet for EnumerableSet.AddressSet;
+
+    // ====================================================================
+    // Custom Errors
+    // ====================================================================
+    error LotteryAlreadyActive();
+    error LotteryNotActive();
+    error LotteryNotEnded();
+    error WinnerAlreadyPicked();
+    error NoParticipants();
+    error TransferFailed();
+    error WinnerNotPickedYet();
+    error LotteryFull();
+    error AlreadyEntered();
+    error InvalidRandomBytesLength();
 
     // ====================================================================
     // Types
@@ -46,7 +60,7 @@ contract Lottery is Ownable, ReentrancyGuard {
     // ====================================================================
     // Constructor
     // ====================================================================
-    constructor(uint256 _maxParticipants) {
+    constructor(uint256 _maxParticipants) Ownable(msg.sender) {
         lotteryStatus = LotteryStatus.Inactive;
         maxParticipants = _maxParticipants;
     }
@@ -60,7 +74,7 @@ contract Lottery is Ownable, ReentrancyGuard {
      * @notice Only callable by owner
      */
     function startLottery() external onlyOwner {
-        require(lotteryStatus == LotteryStatus.Inactive, "Lottery already active");
+        require(lotteryStatus == LotteryStatus.Inactive, LotteryAlreadyActive());
         lotteryStatus = LotteryStatus.Active;
         emit LotteryStarted();
     }
@@ -80,7 +94,7 @@ contract Lottery is Ownable, ReentrancyGuard {
      * @notice Requires lottery to be active
      */
     function endLottery() external onlyOwner {
-        require(lotteryStatus == LotteryStatus.Active, "Lottery not active");
+        require(lotteryStatus == LotteryStatus.Active, LotteryNotActive());
         lotteryStatus = LotteryStatus.Inactive;
         emit LotteryEnded();
     }
@@ -91,10 +105,10 @@ contract Lottery is Ownable, ReentrancyGuard {
      * @notice Uses Oasis Sapphire's secure randomness precompile on Sapphire networks.
      */
     function pickWinner() external onlyOwner nonReentrant {
-        require(lotteryStatus == LotteryStatus.Inactive, "Lottery not ended");
-        require(!winnerPicked, "Winner already picked");
+        require(lotteryStatus == LotteryStatus.Inactive, LotteryNotEnded());
+        require(!winnerPicked, WinnerAlreadyPicked());
         uint256 participantCount = participants.length();
-        require(participantCount > 0, "No participants");
+        require(participantCount > 0, NoParticipants());
 
         // Get random index using the appropriate method for the network
         uint256 randomIndex = _getRandomIndex(participantCount);
@@ -108,7 +122,7 @@ contract Lottery is Ownable, ReentrancyGuard {
 
         // Transfer prize
         (bool success, ) = winner.call{value: prize}("");
-        require(success, "Transfer failed");
+        require(success, TransferFailed());
 
         emit WinnerPicked(winner, prize);
     }
@@ -118,7 +132,7 @@ contract Lottery is Ownable, ReentrancyGuard {
      * @notice Only callable by owner after winner is picked
      */
     function resetLottery() external onlyOwner {
-        require(winnerPicked, "Winner not picked yet");
+        require(winnerPicked, WinnerNotPickedYet());
 
         // Reset all state
         while (participants.length() > 0) {
@@ -142,9 +156,9 @@ contract Lottery is Ownable, ReentrancyGuard {
      * @notice Maximum participants is enforced
      */
     function enter() external {
-        require(lotteryStatus == LotteryStatus.Active, "Lottery inactive");
-        require(participants.length() < maxParticipants, "Lottery full");
-        require(participants.add(msg.sender), "Already entered");
+        require(lotteryStatus == LotteryStatus.Active, LotteryNotActive());
+        require(participants.length() < maxParticipants, LotteryFull());
+        require(participants.add(msg.sender), AlreadyEntered());
         emit ParticipantEntered(msg.sender);
     }
 
@@ -217,7 +231,7 @@ contract Lottery is Ownable, ReentrancyGuard {
         if (_isSapphireNetwork()) {
             // Use Sapphire secure randomness
             bytes memory randomBytes = Sapphire.randomBytes(32, bytes(""));
-            require(randomBytes.length == 32, "Invalid random bytes length");
+            require(randomBytes.length == 32, InvalidRandomBytesLength());
             uint256 randomValue = uint256(abi.decode(randomBytes, (bytes32)));
             return randomValue % participantCount;
         } else {

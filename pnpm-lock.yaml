@@ -39,8 +39,8 @@ importers:
   backend:
     dependencies:
       '@openzeppelin/contracts':
-        specifier: ^4.8.1
-        version: 4.9.6
+        specifier: ^5.2.0
+        version: 5.2.0
       ethers:
         specifier: ^6.10.0
         version: 6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -905,9 +905,6 @@ packages:
         optional: true
       typescript:
         optional: true
-
-  '@openzeppelin/contracts@4.9.6':
-    resolution: {integrity: sha512-xSmezSupL+y9VkHZJGDoCBpmnB2ogM13ccaYDWqJTfS3dbuHkgjuwDFUmaFauBCboQMGB/S5UqUl2y54X99BmA==}
 
   '@openzeppelin/contracts@5.2.0':
     resolution: {integrity: sha512-bxjNie5z89W1Ea0NZLZluFh8PrFNn9DH8DQlujEok2yjsOlraUPKID5p1Wk3qdNbf6XkQ1Os2RvfiHrrXLHWKA==}
@@ -5605,8 +5602,6 @@ snapshots:
       '@oasisprotocol/sapphire-viem-v2': 2.0.1(@oasisprotocol/sapphire-paratime@2.1.0)(@wagmi/core@2.16.7(@tanstack/query-core@5.45.0)(@types/react@18.3.20)(react@18.3.1)(typescript@5.8.2)(use-sync-external-store@1.4.0(react@18.3.1))(viem@2.24.1(bufferutil@4.0.9)(typescript@5.8.2)(utf-8-validate@5.0.10)))(typescript@5.8.2)(viem@2.24.1(bufferutil@4.0.9)(typescript@5.8.2)(utf-8-validate@5.0.10))
       '@wagmi/core': 2.16.7(@tanstack/query-core@5.45.0)(@types/react@18.3.20)(react@18.3.1)(typescript@5.8.2)(use-sync-external-store@1.4.0(react@18.3.1))(viem@2.24.1(bufferutil@4.0.9)(typescript@5.8.2)(utf-8-validate@5.0.10))
       typescript: 5.8.2
-
-  '@openzeppelin/contracts@4.9.6': {}
 
   '@openzeppelin/contracts@5.2.0': {}
 
