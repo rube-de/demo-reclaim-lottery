@@ -13,10 +13,18 @@
 * Uses custom errors defined within contract scope.
 * Backend documentation (`backend/README.md`) created.
 * Contribution guidelines (`CONTRIBUTING.md`) created.
+* Basic frontend structure implemented (`HomePage`, `OwnerDashboard`, `ParticipantDashboard`).
+* Frontend configured to use Lottery ABI and address.
+* Frontend fetches basic lottery details (`getLotteryDetails`) and displays status correctly.
+* Frontend conditionally renders owner/participant views.
 
 ## What's Left to Build
-1. Document security considerations (esp. conditional randomness).
-2. Prepare/finalize deployment scripts.
+1. Implement owner actions (deposit, start, end, pick winner, reset) in `OwnerDashboard.tsx`.
+2. Implement participant action (enter) in `ParticipantDashboard.tsx`.
+3. Add detailed UI elements and styling to both dashboards.
+4. Implement frontend transaction state handling and data refetching.
+5. (Optional) Document security considerations (esp. conditional randomness).
+2. (Optional) Prepare/finalize deployment scripts.
 3. (Optional) Frontend integration examples.
 4. (Optional) Gas optimization analysis.
 5. (Optional) Formal security audit.
@@ -27,10 +35,11 @@
 * OpenZeppelin dependency updated to v5.2.0.
 * Imports refactored to named imports.
 * Documentation (`backend/README.md`, `CONTRIBUTING.md`) created and refined.
-* Ready for next steps (security documentation, deployment prep).
+* Basic frontend integration complete, ready for implementing actions and UI details.
 
 ## Known Issues
-* None yet - all initial tests passing
+* Frontend dashboards lack implementation for contract write actions (deposit, enter, start, etc.).
+* Frontend UI needs refinement (styling, formatting prize, displaying winner).
 
 ## Evolution of Project Decisions
 * Changed from Ownable constructor with initial owner to default Ownable pattern

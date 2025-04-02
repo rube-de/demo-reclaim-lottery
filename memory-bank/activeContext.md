@@ -1,9 +1,17 @@
 # Active Context
 
 ## Current Focus
-* Preparing for deployment.
+* Refining frontend Lottery DApp dashboards (implementing actions, improving UI).
 
 ## Recent Changes
+* Updated `OwnerDashboard.tsx` and `ParticipantDashboard.tsx` to correctly fetch lottery status and details using the `getLotteryDetails` contract function, resolving previous loading/error issues.
+* Updated `frontend/src/constants/config.ts` to use Lottery ABI and address (`VITE_LOTTERY_ADDR`).
+* Refactored `frontend/src/pages/HomePage/index.tsx`:
+    * Removed MessageBox contract logic.
+    * Added logic to fetch Lottery owner address.
+    * Implemented conditional rendering for owner/participant views.
+* Created basic structure for `frontend/src/pages/HomePage/OwnerDashboard.tsx`.
+* Created basic structure for `frontend/src/pages/HomePage/ParticipantDashboard.tsx`.
 * Implemented conditional randomness in `Lottery.sol` (`_getRandomIndex`) using `Sapphire.randomBytes` on Sapphire networks and pseudo-randomness otherwise.
 * Refactored `Lottery.sol` layout according to style guide.
 * Updated tests (`Lottery.ts`) to handle Sapphire network specifics:
@@ -19,12 +27,13 @@
 * Created root `CONTRIBUTING.md` outlining contribution guidelines, TDD process, and general coding standards.
 * Updated `backend/README.md` to link to `CONTRIBUTING.md`.
 * Removed specific `.clinerules` references from `CONTRIBUTING.md` in favor of general standards.
-* Updated memory bank (`activeContext.md`, `progress.md`, `techContext.md`).
+* Updated memory bank (`activeContext.md`, `progress.md`, `techContext.md`, `systemPatterns.md`).
 
 ## Next Steps
-1. Document security considerations (esp. conditional randomness).
-2. Prepare/finalize deployment scripts.
-3. (Optional) Frontend integration examples.
+1.  Implement owner actions (deposit, start, end, pick winner, reset) in `OwnerDashboard.tsx` using `useWriteContract`.
+2.  Implement participant action (enter) in `ParticipantDashboard.tsx` using `useWriteContract`.
+3.  Add UI elements and styling to both dashboards (e.g., format prize, display winner).
+4.  Implement transaction state handling (loading, success, error) and data refetching upon successful transactions.
 
 ## Active Decisions & Considerations
 * Gas optimization deferred.
