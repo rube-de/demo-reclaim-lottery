@@ -17,29 +17,35 @@
 * Frontend configured to use Lottery ABI and address.
 * Frontend fetches basic lottery details (`getLotteryDetails`) and displays status correctly.
 * Frontend conditionally renders owner/participant views.
+* Frontend implements all owner actions (`depositPrize`, `startLottery`, `endLottery`, `pickWinner`, `resetLottery`) with transaction status handling and data refetching.
+* Frontend implements participant action (`enter`) with transaction status handling and data refetching.
+* Frontend displays the lottery winner address on both dashboards.
+* Frontend displays win/loss messages for participants.
+* Frontend UI updates promptly after successful transactions.
+* `Lottery.sol` contract modified to store `lotteryWinner`.
+* Backend tests updated for `lotteryWinner`.
 
 ## What's Left to Build
-1. Implement owner actions (deposit, start, end, pick winner, reset) in `OwnerDashboard.tsx`.
-2. Implement participant action (enter) in `ParticipantDashboard.tsx`.
-3. Add detailed UI elements and styling to both dashboards.
-4. Implement frontend transaction state handling and data refetching.
-5. (Optional) Document security considerations (esp. conditional randomness).
-2. (Optional) Prepare/finalize deployment scripts.
-3. (Optional) Frontend integration examples.
-4. (Optional) Gas optimization analysis.
-5. (Optional) Formal security audit.
+1.  Refine UI styling for both dashboards.
+2.  Consider adding toast notifications for transaction status.
+3.  Perform thorough testing of the frontend interactions.
+4.  (Optional) Document security considerations (esp. conditional randomness).
+5.  (Optional) Prepare/finalize deployment scripts.
+6.  (Optional) Gas optimization analysis.
+7.  (Optional) Formal security audit.
+
 
 ## Current Status
-* Core contract logic complete and tested on Hardhat & Sapphire localnet with custom errors.
+* Core contract logic complete (including winner storage) and tested on Hardhat & Sapphire localnet with custom errors.
 * Test suite adapted for Sapphire network limitations and custom error checks.
 * OpenZeppelin dependency updated to v5.2.0.
 * Imports refactored to named imports.
 * Documentation (`backend/README.md`, `CONTRIBUTING.md`) created and refined.
-* Basic frontend integration complete, ready for implementing actions and UI details.
+* Core frontend functionality implemented, including all contract interactions and winner display. UI needs refinement.
 
 ## Known Issues
-* Frontend dashboards lack implementation for contract write actions (deposit, enter, start, etc.).
-* Frontend UI needs refinement (styling, formatting prize, displaying winner).
+* Frontend UI needs styling improvements.
+* Transaction status feedback could be improved (e.g., toasts).
 
 ## Evolution of Project Decisions
 * Changed from Ownable constructor with initial owner to default Ownable pattern

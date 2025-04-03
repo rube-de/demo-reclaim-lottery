@@ -5,6 +5,7 @@
 * Uses OpenZeppelin's v5 base contracts for security and functionality (Ownable, ReentrancyGuard, EnumerableSet).
 * Event-driven architecture for tracking lottery state changes.
 * Uses Solidity Custom Errors for reverts.
+* Stores winner address in public state variable (`lotteryWinner`) for frontend access.
 
 ## Key Technical Decisions
 1. **Participant Management**:
@@ -46,10 +47,10 @@ flowchart TD
      * Participant limit enforcement
      * Unique address requirement
     - Owner ends lottery (endLottery)
-    - Owner picks winner (pickWinner), which calls internal `_getRandomIndex` for network-appropriate randomness.
+    - Owner picks winner (pickWinner), which calls internal `_getRandomIndex` for network-appropriate randomness and sets `lotteryWinner`.
     - `pickWinner` uses ReentrancyGuard.
     - Contract transfers prize to winner via `call()`.
-    - Owner can reset lottery for new round (`resetLottery`).
+    - Owner can reset lottery for new round (`resetLottery`), which clears `lotteryWinner`.
 
 ---
 
@@ -69,7 +70,8 @@ flowchart TD
     *   **Server State:** TanStack Query (React Query) for fetching, caching, and managing data from the blockchain/backend.
     *   **Shared UI State:** React Context API (`providers/`) for global state like authentication status or theme.
     *   **Local Component State:** `useState`/`useReducer` for state confined to individual components.
-*   **Web3 Interaction:** Abstracted via Wagmi hooks, RainbowKit for wallet connection, and custom hooks (`useWeb3Auth`). Sapphire compatibility handled by specific wrappers.
+    *   **Web3 Interaction:** Abstracted via Wagmi hooks, RainbowKit for wallet connection, and custom hooks (`useWeb3Auth`). Sapphire compatibility handled by specific wrappers.
+    *   **Data Refetching:** Uses React Query's `invalidateQueries` followed by Wagmi's explicit `refetch()` function in transaction success handlers to ensure immediate UI updates.
 
 ```mermaid
 graph TD

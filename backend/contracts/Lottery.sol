@@ -46,6 +46,7 @@ contract Lottery is Ownable, ReentrancyGuard {
     uint256 public maxParticipants;
     uint256 public prizeAmount;
     bool public winnerPicked;
+    address public lotteryWinner; // Variable to store the winner's address
 
     // ====================================================================
     // Events
@@ -119,6 +120,7 @@ contract Lottery is Ownable, ReentrancyGuard {
         // Reset state before transfer to prevent reentrancy
         winnerPicked = true;
         prizeAmount = 0;
+        lotteryWinner = winner; // Store the winner's address
 
         // Transfer prize
         (bool success, ) = winner.call{value: prize}("");
@@ -141,6 +143,7 @@ contract Lottery is Ownable, ReentrancyGuard {
         lotteryStatus = LotteryStatus.Inactive;
         prizeAmount = 0;
         winnerPicked = false;
+        lotteryWinner = address(0); // Reset winner address
 
         emit LotteryReset();
     }

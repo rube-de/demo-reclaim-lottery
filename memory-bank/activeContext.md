@@ -28,12 +28,24 @@
 * Updated `backend/README.md` to link to `CONTRIBUTING.md`.
 * Removed specific `.clinerules` references from `CONTRIBUTING.md` in favor of general standards.
 * Updated memory bank (`activeContext.md`, `progress.md`, `techContext.md`, `systemPatterns.md`).
+* Implemented owner actions (`depositPrize`, `startLottery`, `endLottery`, `pickWinner`, `resetLottery`) in `OwnerDashboard.tsx` using `useWriteContract`, including transaction state handling and explicit data refetching.
+* Implemented participant action (`enter`) in `ParticipantDashboard.tsx` using `useWriteContract`, including transaction state handling and explicit data refetching.
+* Modified `Lottery.sol` to add `lotteryWinner` public state variable.
+* Updated `Lottery.ts` tests to check `lotteryWinner` state.
+* Recompiled contract and updated frontend configuration (`.env.development`) with new address (handled by user).
+* Updated `OwnerDashboard.tsx` and `ParticipantDashboard.tsx` to read and display the `lotteryWinner`.
+* Added "Better luck next time" message to `ParticipantDashboard.tsx`.
+* Fixed UI update delay issue by adding explicit `refetch()` calls after `invalidateQueries()` in transaction success handlers.
 
 ## Next Steps
-1.  Implement owner actions (deposit, start, end, pick winner, reset) in `OwnerDashboard.tsx` using `useWriteContract`.
-2.  Implement participant action (enter) in `ParticipantDashboard.tsx` using `useWriteContract`.
-3.  Add UI elements and styling to both dashboards (e.g., format prize, display winner).
-4.  Implement transaction state handling (loading, success, error) and data refetching upon successful transactions.
+1.  Refine UI styling for both dashboards.
+2.  Consider adding toast notifications for transaction status instead of/in addition to the current inline messages.
+3.  Perform thorough testing of the frontend interactions.
+4.  (Optional) Document security considerations (esp. conditional randomness).
+5.  (Optional) Prepare/finalize deployment scripts.
+6.  (Optional) Gas optimization analysis.
+7.  (Optional) Formal security audit.
+
 
 ## Active Decisions & Considerations
 * Gas optimization deferred.
@@ -56,3 +68,4 @@
 * Prize distribution uses `call()` for compatibility.
 * Testing reverts on Sapphire requires `await tx.wait()` and checking the specific error message string `"transaction execution reverted"`.
 * Shell command chaining requires standard `&&`, not `&&`.
+* Explicit `refetch()` calls are needed alongside `invalidateQueries()` for immediate UI updates with Wagmi/React Query in this setup.
