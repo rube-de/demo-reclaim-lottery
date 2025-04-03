@@ -36,11 +36,19 @@
 * Updated `OwnerDashboard.tsx` and `ParticipantDashboard.tsx` to read and display the `lotteryWinner`.
 * Added "Better luck next time" message to `ParticipantDashboard.tsx`.
 * Fixed UI update delay issue by adding explicit `refetch()` calls after `invalidateQueries()` in transaction success handlers.
+* Refined UI styling for Owner and Participant dashboards:
+    * Updated shared component styles (Button, Card, Input) for consistent theming.
+    * Created shared CSS module (`DashboardCommon.module.css`) and refactored dashboards to use it.
+    * Removed redundant welcome/address display.
+    * Updated Input border color to match label.
+    * Implemented conditional rendering for Start/End Lottery buttons.
+    * Refactored status display to a more compact row-based layout, removing "Winner Picked" redundancy.
+    * Moved Deposit action into the status section in Owner dashboard.
 
 ## Next Steps
-1.  Refine UI styling for both dashboards.
-2.  Consider adding toast notifications for transaction status instead of/in addition to the current inline messages.
-3.  Perform thorough testing of the frontend interactions.
+1.  Consider adding toast notifications for transaction status instead of/in addition to the current inline messages.
+2.  Perform thorough testing of the frontend interactions.
+3.  (Optional) Document security considerations (esp. conditional randomness).
 4.  (Optional) Document security considerations (esp. conditional randomness).
 5.  (Optional) Prepare/finalize deployment scripts.
 6.  (Optional) Gas optimization analysis.

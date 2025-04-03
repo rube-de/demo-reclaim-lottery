@@ -5,7 +5,8 @@ import { formatEther, zeroAddress } from 'viem'
 import { WAGMI_CONTRACT_CONFIG, WagmiUseReadContractReturnType } from '../../constants/config'
 import { Button } from '../../components/Button'
 import { Alert } from '../../components/Alert'
-import styles from './ParticipantDasboard.module.css'
+import commonStyles from './DashboardCommon.module.css' // Import common styles
+import participantStyles from './ParticipantDasboard.module.css' // Import specific styles
 
 // Re-use transaction status types/hook from OwnerDashboard (or move to a shared file)
 type TransactionStatus = {
@@ -166,51 +167,47 @@ export const ParticipantDashboard: FC = () => {
   const errorMessage = getErrorMessage(lastTxStatus);
 
   return (
-    <div className={styles.dashboardContainer}>
-      {/* Welcome Section */}
-      <div className={styles.welcomeSection}>
-        <h3>Participant Dashboard</h3>
-        <p>Welcome, Participant</p>
-        <div className={styles.addressDisplay}>{address}</div>
-      </div>
+    <div className={commonStyles.dashboardContainer}>
+      {/* Welcome Section Removed */}
       
       {/* Status Section */}
       <div>
         <h4>Lottery Status</h4>
-        <div className={styles.statusSection}>
-          <div className={styles.statusIndicator}>
-            <span className={currentState === 1 ? styles.statusDotActive : styles.statusDotInactive}></span>
-            <strong>{lotteryStateString}</strong>
-          </div>
-          
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <div className={styles.statLabel}>Participants</div>
-              <div className={styles.statValue}>
+        <div className={commonStyles.statusSection}>
+          {/* Row 1: State & Participants */}
+          <div className={commonStyles.statusDisplayRow}>
+            <div className={commonStyles.statItem}>
+              <div className={commonStyles.statLabel}>Current State</div>
+              <div className={commonStyles.statValue}>{lotteryStateString}</div>
+            </div>
+            <div className={commonStyles.statItem}>
+              <div className={commonStyles.statLabel}>Participants</div>
+              <div className={commonStyles.statValue}>
                 {participantCount?.toString() ?? '...'} / {maxAllowedParticipants?.toString() ?? '...'}
               </div>
             </div>
             
-            <div className={styles.statCard}>
-              <div className={styles.statLabel}>Prize Pool</div>
-              <div className={styles.statValue}>
+            {/* Prize Pool - Row 2 */}
+          </div>
+          <div className={commonStyles.statusDisplayRow}>
+            <div className={commonStyles.statItem}>
+              <div className={commonStyles.statLabel}>Prize Pool</div>
+              <div className={commonStyles.statValue}>
                 {currentPrize !== undefined ? formatEther(currentPrize) : '...'} ETH
               </div>
             </div>
             
-            <div className={styles.statCard}>
-              <div className={styles.statLabel}>Winner Picked</div>
-              <div className={styles.statValue}>
-                {isWinnerPicked === undefined ? '...' : isWinnerPicked ? 'Yes' : 'No'}
-              </div>
-            </div>
+            {/* Winner Picked Removed */}
           </div>
-          
-          {/* Winner Display */}
+
+          {/* Winner Display - Row 3 (Conditional) */}
           {isWinnerPicked && winnerAddress && winnerAddress !== zeroAddress && (
-            <div className={styles.winnerCard}>
-              <div className={styles.statLabel}>Winner</div>
-              <div className={styles.winnerAddress}>{winnerAddress}</div>
+            <div className={commonStyles.statusDisplayRow}>
+              {/* Using winnerCard style for now, could be simplified */}
+              <div className={`${participantStyles.winnerCard} ${commonStyles.statItem}`} style={{width: '100%'}}>
+                <div className={commonStyles.statLabel}>Winner</div>
+                <div className={participantStyles.winnerAddress}>{winnerAddress}</div>
+              </div>
             </div>
           )}
           
@@ -218,7 +215,7 @@ export const ParticipantDashboard: FC = () => {
           {hasEntered && (
             <Alert type={isCurrentUserWinner ? "success" : "info"}>
               {isCurrentUserWinner ? (
-                <strong className={styles.successText}>🎉 Congratulations! You won this lottery! 🎉</strong>
+                <strong className={commonStyles.successText}>🎉 Congratulations! You won this lottery! 🎉</strong>
               ) : (
                 <strong>You have entered this lottery!</strong>
               )}
@@ -227,26 +224,26 @@ export const ParticipantDashboard: FC = () => {
           
           {/* Show message if entered but did not win */}
           {isWinnerPicked && hasEntered && !isCurrentUserWinner && (
-            <div className={styles.infoMessage}>Better luck next time!</div>
+            <div className={commonStyles.infoMessage}>Better luck next time!</div>
           )}
         </div>
       </div>
       
       {/* Actions Section */}
-      <div className={styles.actionsSection}>
+      <div className={commonStyles.actionsSection}>
         <h4>Actions</h4>
         <div>
           <Button
             onClick={handleEnterLottery}
             disabled={isProcessing || !canEnter || isWinnerPicked}
-            className={styles.actionButton}
+            className={commonStyles.actionButton}
           >
             {isProcessing && lastTxAction === 'enter' ? 'Processing...' : 'Enter Lottery'}
           </Button>
           
           {/* Display reasons why entry might be disabled */}
           {!isProcessing && (
-            <div className={styles.infoMessage}>
+            <div className={commonStyles.infoMessage}>
               {currentState !== 1 && !isWinnerPicked && 'Lottery is not active for entry.'}
               {currentState === 1 && hasEntered && !isWinnerPicked && 'You have already entered.'}
               {currentState === 1 && !hasEntered && isLotteryFull && !isWinnerPicked && 'Lottery is full.'}
@@ -257,12 +254,12 @@ export const ParticipantDashboard: FC = () => {
       </div>
 
       {/* Transaction Status/Error Messages */}
-      <div className={styles.statusMessages}>
+      <div className={commonStyles.statusMessages}>
         {lastTxStatus?.isConfirming && <p>Processing transaction ({lastTxAction})... Please wait.</p>}
         {lastTxStatus?.isSuccess && <Alert type="success">Transaction successful! ({lastTxAction})</Alert>}
         {errorMessage && <Alert type="error">{errorMessage} ({lastTxAction})</Alert>}
         {lastTxStatus?.hash && (
-          <div className={styles.txHash}>
+          <div className={commonStyles.txHash}>
             Tx Hash: {lastTxStatus.hash}
           </div>
         )}

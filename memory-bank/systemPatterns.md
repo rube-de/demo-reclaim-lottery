@@ -60,7 +60,7 @@ flowchart TD
 *   **Root Component:** `App.tsx` sets up routing (`react-router-dom`) and the main application layout.
 *   **Structure:** Follows a standard React/Vite structure:
     *   `components/`: Reusable UI elements (e.g., `Button`, `Card`, `Layout`), often using CSS Modules for scoped styling.
-    *   `pages/`: Feature-specific view components mapped to routes.
+    *   `pages/`: Feature-specific view components mapped to routes. Dashboard pages (`OwnerDashboard`, `ParticipantDashboard`) utilize a shared CSS module (`DashboardCommon.module.css`) for common layout and specific modules for unique styles.
     *   `hooks/`: Custom hooks for reusable logic (e.g., `useAppState`, `useWeb3Auth`).
     *   `providers/`: React Context API providers for shared state (e.g., `AppStateProvider`, `Web3AuthProvider`).
     *   `constants/`: Application-wide constants.

@@ -6,7 +6,7 @@ import { WAGMI_CONTRACT_CONFIG, WagmiUseReadContractReturnType } from '../../con
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Alert } from '../../components/Alert' // Import Alert for feedback
-// import classes from './index.module.css'
+import styles from './DashboardCommon.module.css' // Import common styles
 
 // Helper type for transaction states
 type TransactionStatus = {
@@ -195,97 +195,128 @@ export const OwnerDashboard: FC = () => {
   const errorMessage = getErrorMessage(lastTxStatus);
 
   return (
-    <div className={/*classes.dashboardContainer*/ ""}> {/* Add class if needed */}
-      <h3>Owner Dashboard</h3>
-      <p>Welcome, Owner ({address})</p>
+    <div className={styles.dashboardContainer}>
+      {/* Welcome Section Removed */}
+      <h3>Owner Dashboard</h3> {/* Keep the title */}
 
       {/* Display Lottery State */}
-      <div className={/*classes.statusSection*/ ""}>
+      <div className={styles.statusSection}>
         <h4>Lottery Status</h4>
-        <p>Current State: <strong>{lotteryStateString}</strong></p>
-        <p>Participants: <strong>{participantCount?.toString() ?? '...'} / {maxAllowedParticipants?.toString() ?? '...'}</strong></p>
-        <p>Prize Pool: <strong>{currentPrize !== undefined ? formatEther(currentPrize) : '...'} ETH</strong></p>
-        <p>Winner Picked: <strong>{isWinnerPicked === undefined ? '...' : isWinnerPicked ? 'Yes' : 'No'}</strong></p>
-        {/* Display winner address if picked and not zero address */}
+
+        {/* Row 1: State & Participants */}
+        <div className={styles.statusDisplayRow}>
+          <div className={styles.statItem}>
+            <div className={styles.statLabel}>Current State</div>
+            <div className={styles.statValue}>{lotteryStateString}</div>
+          </div>
+          <div className={styles.statItem}>
+            <div className={styles.statLabel}>Participants</div>
+            <div className={styles.statValue}>{participantCount?.toString() ?? '...'} / {maxAllowedParticipants?.toString() ?? '...'}</div>
+          </div>
+        </div>
+
+        {/* Row 2: Prize Pool & Deposit Action */}
+        <div className={styles.statusDisplayRow}>
+           <div className={styles.statItem}>
+            <div className={styles.statLabel}>Prize Pool</div>
+            <div className={styles.statValue}>{currentPrize !== undefined ? formatEther(currentPrize) : '...'} ETH</div>
+          </div>
+          {/* Deposit action moved here */}
+          <div className={styles.actionItem} style={{ flexGrow: 1 }}> {/* Allow deposit to take more space */}
+            <Input
+              label="Deposit Amount (ETH)"
+              value={depositAmount}
+              onChange={setDepositAmount}
+              disabled={!!isProcessingTx}
+            />
+            <Button
+              onClick={handleDepositPrize}
+              disabled={!!isProcessingTx || !depositAmount}
+              className={styles.actionButton}
+            >
+              {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'depositPrize' ? 'Depositing...' : 'Deposit Prize'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Row 3: Winner (Conditional) */}
+        {/* "Winner Picked" line removed */}
         {isWinnerPicked && winnerAddress && winnerAddress !== zeroAddress && (
-          <p>Winner: <strong style={{ wordBreak: 'break-all' }}>{winnerAddress}</strong></p>
+          <div className={styles.statusDisplayRow}>
+             <div className={styles.statItem}>
+              <div className={styles.statLabel}>Winner</div>
+              {/* Using statValue but adjusted style */}
+              <div className={styles.statValue} style={{ wordBreak: 'break-all', fontSize: '1rem' }}>{winnerAddress}</div>
+            </div>
+          </div>
         )}
       </div>
-      {/* Owner Actions */}
-      <div className={/*classes.actionsSection*/ ""}>
-        <h4>Actions</h4>
 
-        {/* Deposit Prize */}
-        <div className={/*classes.actionItem*/ ""}>
-          <Input
-            label="Deposit Amount (ETH)"
-            value={depositAmount}
-            // Pass the value directly to setDepositAmount
-            onChange={setDepositAmount}
-            disabled={!!isProcessingTx}
-            // Remove unsupported props: type, placeholder, step
-          />
-          <Button
-            onClick={handleDepositPrize}
-            disabled={!!isProcessingTx || !depositAmount}
-          >
-            {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'depositPrize' ? 'Depositing...' : 'Deposit Prize'}
-          </Button>
-        </div>
+      {/* Owner Actions (excluding Deposit) - Now in a row */}
+      <div className={styles.actionsSection} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: '1rem' }}>
+        {/* <h4>Other Actions</h4> Removed */}
 
-        {/* Start Lottery */}
-        <div className={/*classes.actionItem*/ ""}>
-          <Button
-            onClick={handleStartLottery}
-            disabled={!!isProcessingTx || currentState !== 0} // Disable if not Inactive
-          >
-            {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'startLottery' ? 'Starting...' : 'Start Lottery'}
-          </Button>
-        </div>
+        {/* Start Lottery - Only show if Inactive */}
+        {currentState === 0 && (
+          // <div className={styles.actionItem}> Removed wrapper
+            <Button
+              onClick={handleStartLottery}
+              disabled={!!isProcessingTx} // Keep disabled check
+              className={styles.actionButton} // Apply common button class if needed
+            >
+              {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'startLottery' ? 'Starting...' : 'Start Lottery'}
+            </Button>
+          // </div> Removed wrapper
+        )}
 
-        {/* End Lottery */}
-        <div className={/*classes.actionItem*/ ""}>
-          <Button
-            onClick={handleEndLottery}
-            disabled={!!isProcessingTx || currentState !== 1} // Disable if not Active
-          >
-            {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'endLottery' ? 'Ending...' : 'End Lottery'}
-          </Button>
-        </div>
+        {/* End Lottery - Only show if Active */}
+        {currentState === 1 && (
+          // <div className={styles.actionItem}> Removed wrapper
+            <Button
+              onClick={handleEndLottery}
+              disabled={!!isProcessingTx} // Keep disabled check
+              className={styles.actionButton} // Apply common button class if needed
+            >
+              {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'endLottery' ? 'Ending...' : 'End Lottery'}
+            </Button>
+          // </div> Removed wrapper
+        )}
 
         {/* Pick Winner */}
-        <div className={/*classes.actionItem*/ ""}>
+        {/* <div className={styles.actionItem}> Removed wrapper */}
           <Button
             onClick={handlePickWinner}
             // Disable if not Inactive, or winner already picked, or no participants, or prize is zero
             disabled={!!isProcessingTx || currentState !== 0 || isWinnerPicked === undefined || isWinnerPicked || participantCount === 0n || currentPrize === 0n}
+            className={styles.actionButton} // Apply common button class if needed
           >
             {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'pickWinner' ? 'Picking...' : 'Pick Winner'}
           </Button>
-        </div>
+        {/* </div> Removed wrapper */}
 
          {/* Reset Lottery */}
-        <div className={/*classes.actionItem*/ ""}>
+        {/* <div className={styles.actionItem}> Removed wrapper */}
           <Button
             onClick={handleResetLottery}
             // Disable if winner not picked yet
             disabled={!!isProcessingTx || isWinnerPicked === undefined || !isWinnerPicked}
+            className={styles.actionButton} // Apply common button class if needed
           >
             {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'resetLottery' ? 'Resetting...' : 'Reset Lottery'}
           </Button>
-        </div>
+        {/* </div> Removed wrapper */}
       </div>
 
       {/* Transaction Status/Error Messages */}
-      <div className={/*classes.statusMessages*/ ""}>
+      <div className={styles.statusMessages}>
         {/* Use a simple paragraph for confirming state as Alert doesn't support info/warning */}
         {lastTxStatus?.isConfirming && <p>Processing transaction ({lastTxAction})... Please wait.</p>}
         {lastTxStatus?.isSuccess && <Alert type="success">Transaction successful! ({lastTxAction})</Alert>}
         {errorMessage && <Alert type="error">{errorMessage} ({lastTxAction})</Alert>}
         {lastTxStatus?.hash && (
-          <p style={{ fontSize: '0.8em', wordBreak: 'break-all' }}>
-            Tx Hash: {lastTxStatus.hash} {/* Add link to block explorer if needed */}
-          </p>
+          <div className={styles.txHash}> {/* Use common style for hash */}
+            Tx Hash: {lastTxStatus.hash}
+          </div>
         )}
       </div>
     </div>

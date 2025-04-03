@@ -24,11 +24,20 @@
 * Frontend UI updates promptly after successful transactions.
 * `Lottery.sol` contract modified to store `lotteryWinner`.
 * Backend tests updated for `lotteryWinner`.
+* Frontend UI styling refined for consistency and compactness:
+    * Shared component styles updated (Button, Card, Input).
+    * Shared CSS module created (`DashboardCommon.module.css`).
+    * Dashboards refactored to use shared/specific styles.
+    * Redundant welcome/address info removed.
+    * Input border color fixed.
+    * Conditional rendering added for Start/End buttons.
+    * Status display refactored to compact row layout.
+    * Deposit action moved to status section.
 
 ## What's Left to Build
-1.  Refine UI styling for both dashboards.
-2.  Consider adding toast notifications for transaction status.
-3.  Perform thorough testing of the frontend interactions.
+1.  Consider adding toast notifications for transaction status.
+2.  Perform thorough testing of the frontend interactions.
+3.  (Optional) Document security considerations (esp. conditional randomness).
 4.  (Optional) Document security considerations (esp. conditional randomness).
 5.  (Optional) Prepare/finalize deployment scripts.
 6.  (Optional) Gas optimization analysis.
@@ -41,11 +50,12 @@
 * OpenZeppelin dependency updated to v5.2.0.
 * Imports refactored to named imports.
 * Documentation (`backend/README.md`, `CONTRIBUTING.md`) created and refined.
-* Core frontend functionality implemented, including all contract interactions and winner display. UI needs refinement.
+* Core frontend functionality implemented, including all contract interactions and winner display.
+* UI styling refined for consistency and compactness.
 
 ## Known Issues
-* Frontend UI needs styling improvements.
 * Transaction status feedback could be improved (e.g., toasts).
+* (Minor) Participant dashboard still uses `.winnerCard` style which could be merged into common styles or simplified.
 
 ## Evolution of Project Decisions
 * Changed from Ownable constructor with initial owner to default Ownable pattern
