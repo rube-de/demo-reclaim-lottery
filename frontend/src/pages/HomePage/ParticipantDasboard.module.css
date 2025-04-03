@@ -1,0 +1,133 @@
+.dashboardContainer {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .welcomeSection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .addressDisplay {
+    font-size: 0.875rem;
+    color: var(--gray-medium-dark);
+    word-break: break-all;
+    padding: 0.5rem;
+    background: var(--gray-light);
+    border-radius: 6px;
+    font-family: 'Roboto Mono Variable', monospace;
+  }
+  
+  .statusSection {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--gray-light);
+    border-radius: 10px;
+    margin-top: 0.5rem;
+  }
+  
+  .statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  
+  .statCard {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px var(--gray-dark-box-shadow);
+  }
+  
+  .statLabel {
+    font-size: 0.875rem;
+    color: var(--gray-medium-dark);
+    margin-bottom: 0.5rem;
+  }
+  
+  .statValue {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--brand-dark-blue);
+  }
+  
+  .winnerCard {
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px var(--gray-dark-box-shadow);
+    margin-top: 1rem;
+  }
+  
+  .winnerAddress {
+    font-family: 'Roboto Mono Variable', monospace;
+    font-size: 0.875rem;
+    word-break: break-all;
+  }
+  
+  .actionsSection {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  
+  .actionButton {
+    max-width: 200px;
+  }
+  
+  .statusIndicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .statusDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  
+  .statusDotActive {
+    background: var(--green);
+  }
+  
+  .statusDotInactive {
+    background: var(--gray);
+  }
+  
+  .statusMessages {
+    margin-top: 1rem;
+  }
+  
+  .txHash {
+    font-size: 0.8rem;
+    word-break: break-all;
+    font-family: 'Roboto Mono Variable', monospace;
+    padding: 0.5rem;
+    background: var(--gray-light);
+    border-radius: 6px;
+    margin-top: 0.5rem;
+  }
+  
+  .infoMessage {
+    font-size: 0.9rem;
+    color: var(--gray-medium-dark);
+    font-style: italic;
+    margin-top: 0.5rem;
+  }
+  
+  .successText {
+    color: var(--green);
+    font-weight: 600;
+  }

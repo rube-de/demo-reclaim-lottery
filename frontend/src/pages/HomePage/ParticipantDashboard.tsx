@@ -1,11 +1,11 @@
 import { FC, useEffect, useMemo, useState } from 'react'
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi' // Remove useQueryClient import from wagmi
-import { useQueryClient } from '@tanstack/react-query' // Import useQueryClient from react-query
-import { formatEther, zeroAddress } from 'viem' // Import formatEther and zeroAddress
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useQueryClient } from '@tanstack/react-query'
+import { formatEther, zeroAddress } from 'viem'
 import { WAGMI_CONTRACT_CONFIG, WagmiUseReadContractReturnType } from '../../constants/config'
 import { Button } from '../../components/Button'
-import { Alert } from '../../components/Alert' // Import Alert
-// import classes from './index.module.css'
+import { Alert } from '../../components/Alert'
+import styles from './ParticipantDasboard.module.css'
 
 // Re-use transaction status types/hook from OwnerDashboard (or move to a shared file)
 type TransactionStatus = {
@@ -35,28 +35,25 @@ const useTransactionState = (hash?: `0x${string}`): TransactionStatus => {
   }
 }
 
-
 export const ParticipantDashboard: FC = () => {
   const { address } = useAccount()
-  const queryClient = useQueryClient() // Get query client instance
+  const queryClient = useQueryClient()
   const [lastTxStatus, setLastTxStatus] = useState<TransactionStatus | null>(null)
   const [lastTxAction, setLastTxAction] = useState<string | null>(null)
 
   // --- Read Contract Data ---
-  // 1. Fetch all lottery details
-  // Removed duplicate const {
   const {
     data: lotteryDetails,
-    refetch: refetchLotteryDetails, // Get refetch function
+    refetch: refetchLotteryDetails,
     isLoading: isLoadingLotteryDetails,
     isError: isErrorLotteryDetails,
     error: errorLotteryDetails,
   } = useReadContract({
     ...WAGMI_CONTRACT_CONFIG,
     functionName: 'getLotteryDetails',
-  }) satisfies WagmiUseReadContractReturnType< // Keep satisfies for type safety
+  }) satisfies WagmiUseReadContractReturnType<
     'getLotteryDetails',
-    readonly [number, bigint, bigint, bigint, boolean] // Simplified tuple type
+    readonly [number, bigint, bigint, bigint, boolean]
   >
 
   // Extract details
@@ -67,7 +64,7 @@ export const ParticipantDashboard: FC = () => {
   const isWinnerPicked = useMemo(() => lotteryDetails?.[4], [lotteryDetails])
 
   // Map enum state
-  const lotteryStateString = useMemo(() => { /* ... same as before ... */
+  const lotteryStateString = useMemo(() => {
     if (isLoadingLotteryDetails) return 'Loading...'
     if (isErrorLotteryDetails) return `Error: ${errorLotteryDetails?.shortMessage || errorLotteryDetails?.message}`
     switch (currentState) {
@@ -77,29 +74,27 @@ export const ParticipantDashboard: FC = () => {
     }
   }, [currentState, isLoadingLotteryDetails, isErrorLotteryDetails, errorLotteryDetails])
 
-  // 2. Fetch participant list to check if current user has entered
-  const { data: participantsList, refetch: refetchParticipantsList, isLoading: isLoadingParticipants } = useReadContract({ // Get refetch function
+  // Fetch participant list to check if current user has entered
+  const { data: participantsList, refetch: refetchParticipantsList, isLoading: isLoadingParticipants } = useReadContract({
     ...WAGMI_CONTRACT_CONFIG,
     functionName: 'getParticipants',
     query: {
-      enabled: !!address, // Only run if address is available
+      enabled: !!address,
     },
   }) satisfies WagmiUseReadContractReturnType<'getParticipants', readonly `0x${string}`[]>
 
   // Check if current address is in the list
   const hasEntered = useMemo(() => {
     if (!address || !participantsList) return false;
-    // Add explicit type for 'p'
     return participantsList.some((p: `0x${string}`) => p.toLowerCase() === address.toLowerCase());
   }, [address, participantsList]);
 
-  // 3. Fetch winner address
-  const { data: winnerAddress, refetch: refetchWinnerAddress } = useReadContract({ // Get refetch function
+  // Fetch winner address
+  const { data: winnerAddress, refetch: refetchWinnerAddress } = useReadContract({
     ...WAGMI_CONTRACT_CONFIG,
     functionName: 'lotteryWinner',
     query: {
-      // Only fetch if the winner has potentially been picked
-      enabled: currentState === 0 && isWinnerPicked === true, // Fetch only when inactive AND winner picked
+      enabled: currentState === 0 && isWinnerPicked === true,
     }
   }) satisfies WagmiUseReadContractReturnType<'lotteryWinner', `0x${string}`>
 
@@ -134,38 +129,30 @@ export const ParticipantDashboard: FC = () => {
     writeContract({
       ...WAGMI_CONTRACT_CONFIG,
       functionName: 'enter',
-      // No args or value needed for this contract's enter function
     })
   }
 
   // Refetch data on success
   useEffect(() => {
     if (lastTxStatus?.isSuccess) {
-      // Invalidate both queries
       const detailsQueryKey: readonly unknown[] = [WAGMI_CONTRACT_CONFIG.address, 'getLotteryDetails', undefined];
       const participantsQueryKey: readonly unknown[] = [WAGMI_CONTRACT_CONFIG.address, 'getParticipants', undefined];
 
-      console.log(`Transaction ${lastTxAction} succeeded. Invalidating queries.`);
       queryClient.invalidateQueries({ queryKey: detailsQueryKey });
       queryClient.invalidateQueries({ queryKey: participantsQueryKey });
-      console.log('Query invalidations called.');
 
-      // Explicitly refetch data
       refetchLotteryDetails();
       refetchParticipantsList();
-      // No need to refetch winner here, as entering doesn't change the winner
-      console.log('Explicit refetches called.');
     }
-    // Add refetch functions and lastTxAction to dependency array
-  }, [lastTxStatus?.isSuccess, queryClient, refetchLotteryDetails, refetchParticipantsList, lastTxAction]) // Removed refetchWinnerAddress dependency
+  }, [lastTxStatus?.isSuccess, queryClient, refetchLotteryDetails, refetchParticipantsList, lastTxAction])
 
   // Combine loading/processing states
   const isProcessing = isLoadingLotteryDetails || isLoadingParticipants || lastTxStatus?.isPending || lastTxStatus?.isConfirming;
 
   // Determine if user can enter
   const isLotteryFull = useMemo(() => {
-      if (participantCount === undefined || maxAllowedParticipants === undefined) return false; // Assume not full if data missing
-      return participantCount >= maxAllowedParticipants;
+    if (participantCount === undefined || maxAllowedParticipants === undefined) return false;
+    return participantCount >= maxAllowedParticipants;
   }, [participantCount, maxAllowedParticipants]);
 
   const canEnter = currentState === 1 && !hasEntered && !isLotteryFull;
@@ -179,58 +166,105 @@ export const ParticipantDashboard: FC = () => {
   const errorMessage = getErrorMessage(lastTxStatus);
 
   return (
-    <div className={/*classes.dashboardContainer*/ ""}>
-      <h3>Participant Dashboard</h3>
-      <p>Welcome, Participant ({address})</p>
-
-      {/* Display Lottery State */}
-      <div className={/*classes.statusSection*/ ""}>
-        <h4>Lottery Status</h4>
-        <p>Current State: <strong>{lotteryStateString}</strong></p>
-        <p>Participants: <strong>{participantCount?.toString() ?? '...'} / {maxAllowedParticipants?.toString() ?? '...'}</strong></p>
-        <p>Prize Pool: <strong>{currentPrize !== undefined ? formatEther(currentPrize) : '...'} ETH</strong></p>
-        <p>Winner Picked: <strong>{isWinnerPicked === undefined ? '...' : isWinnerPicked ? 'Yes' : 'No'}</strong></p>
-        {/* Display winner address if picked and not zero address */}
-        {isWinnerPicked && winnerAddress && winnerAddress !== zeroAddress && (
-          <p>Winner: <strong style={{ wordBreak: 'break-all' }}>{winnerAddress}</strong></p>
-        )}
-        {/* Show entry status and win status */}
-        {hasEntered && !isCurrentUserWinner && <p><strong>You have entered this lottery!</strong></p>}
-        {isCurrentUserWinner && (
-          <Alert type="success">
-            Congratulations, You Won!
-          </Alert>
-        )}
-        {/* Show message if entered but did not win */}
-        {isWinnerPicked && hasEntered && !isCurrentUserWinner && (
-          <p>Better luck next time!</p>
-        )}
+    <div className={styles.dashboardContainer}>
+      {/* Welcome Section */}
+      <div className={styles.welcomeSection}>
+        <h3>Participant Dashboard</h3>
+        <p>Welcome, Participant</p>
+        <div className={styles.addressDisplay}>{address}</div>
       </div>
-      {/* Participant Actions */}
-      <div className={/*classes.actionsSection*/ ""}>
+      
+      {/* Status Section */}
+      <div>
+        <h4>Lottery Status</h4>
+        <div className={styles.statusSection}>
+          <div className={styles.statusIndicator}>
+            <span className={currentState === 1 ? styles.statusDotActive : styles.statusDotInactive}></span>
+            <strong>{lotteryStateString}</strong>
+          </div>
+          
+          <div className={styles.statsGrid}>
+            <div className={styles.statCard}>
+              <div className={styles.statLabel}>Participants</div>
+              <div className={styles.statValue}>
+                {participantCount?.toString() ?? '...'} / {maxAllowedParticipants?.toString() ?? '...'}
+              </div>
+            </div>
+            
+            <div className={styles.statCard}>
+              <div className={styles.statLabel}>Prize Pool</div>
+              <div className={styles.statValue}>
+                {currentPrize !== undefined ? formatEther(currentPrize) : '...'} ETH
+              </div>
+            </div>
+            
+            <div className={styles.statCard}>
+              <div className={styles.statLabel}>Winner Picked</div>
+              <div className={styles.statValue}>
+                {isWinnerPicked === undefined ? '...' : isWinnerPicked ? 'Yes' : 'No'}
+              </div>
+            </div>
+          </div>
+          
+          {/* Winner Display */}
+          {isWinnerPicked && winnerAddress && winnerAddress !== zeroAddress && (
+            <div className={styles.winnerCard}>
+              <div className={styles.statLabel}>Winner</div>
+              <div className={styles.winnerAddress}>{winnerAddress}</div>
+            </div>
+          )}
+          
+          {/* Participant Status */}
+          {hasEntered && (
+            <Alert type={isCurrentUserWinner ? "success" : "info"}>
+              {isCurrentUserWinner ? (
+                <strong className={styles.successText}>🎉 Congratulations! You won this lottery! 🎉</strong>
+              ) : (
+                <strong>You have entered this lottery!</strong>
+              )}
+            </Alert>
+          )}
+          
+          {/* Show message if entered but did not win */}
+          {isWinnerPicked && hasEntered && !isCurrentUserWinner && (
+            <div className={styles.infoMessage}>Better luck next time!</div>
+          )}
+        </div>
+      </div>
+      
+      {/* Actions Section */}
+      <div className={styles.actionsSection}>
         <h4>Actions</h4>
-        <Button
-          onClick={handleEnterLottery}
-          disabled={isProcessing || !canEnter || isWinnerPicked} // Also disable if winner already picked
-        >
-          {isProcessing && lastTxAction === 'enter' ? 'Processing...' : 'Enter Lottery'}
-        </Button>
-        {/* Display reasons why entry might be disabled */}
-        {!isProcessing && currentState !== 1 && !isWinnerPicked && <p>Lottery is not active for entry.</p>}
-        {!isProcessing && currentState === 1 && hasEntered && !isWinnerPicked && <p>You have already entered.</p>}
-        {!isProcessing && currentState === 1 && !hasEntered && isLotteryFull && !isWinnerPicked && <p>Lottery is full.</p>}
-        {!isProcessing && isWinnerPicked && <p>Lottery has ended.</p>}
+        <div>
+          <Button
+            onClick={handleEnterLottery}
+            disabled={isProcessing || !canEnter || isWinnerPicked}
+            className={styles.actionButton}
+          >
+            {isProcessing && lastTxAction === 'enter' ? 'Processing...' : 'Enter Lottery'}
+          </Button>
+          
+          {/* Display reasons why entry might be disabled */}
+          {!isProcessing && (
+            <div className={styles.infoMessage}>
+              {currentState !== 1 && !isWinnerPicked && 'Lottery is not active for entry.'}
+              {currentState === 1 && hasEntered && !isWinnerPicked && 'You have already entered.'}
+              {currentState === 1 && !hasEntered && isLotteryFull && !isWinnerPicked && 'Lottery is full.'}
+              {isWinnerPicked && 'Lottery has ended.'}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Transaction Status/Error Messages */}
-      <div className={/*classes.statusMessages*/ ""}>
+      <div className={styles.statusMessages}>
         {lastTxStatus?.isConfirming && <p>Processing transaction ({lastTxAction})... Please wait.</p>}
         {lastTxStatus?.isSuccess && <Alert type="success">Transaction successful! ({lastTxAction})</Alert>}
         {errorMessage && <Alert type="error">{errorMessage} ({lastTxAction})</Alert>}
         {lastTxStatus?.hash && (
-          <p style={{ fontSize: '0.8em', wordBreak: 'break-all' }}>
-            Tx Hash: {lastTxStatus.hash} {/* Add link to block explorer if needed */}
-          </p>
+          <div className={styles.txHash}>
+            Tx Hash: {lastTxStatus.hash}
+          </div>
         )}
       </div>
     </div>
