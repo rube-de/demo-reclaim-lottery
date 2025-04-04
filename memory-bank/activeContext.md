@@ -54,12 +54,10 @@
         * Replaced the large `Alert` component with the new `StatusBanner` for displaying entry/win status below the main details section.
 
 ## Next Steps
-1.  Perform thorough testing of the frontend interactions (including toast notifications, conditional rendering, and StatusBanner display).
-2.  (Optional) Document security considerations (esp. conditional randomness).
-3.  (Optional) Document security considerations (esp. conditional randomness).
-5.  (Optional) Prepare/finalize deployment scripts.
-6.  (Optional) Gas optimization analysis.
-7.  (Optional) Formal security audit.
+1.  Integrate Reclaim Protocol in the frontend. So that only participants which made right attestation can join the lottery
+2.  Integarte Reclaim Protocol in contracts to check attestion before participant can join lottery.
+3.  (Optional) Review code structure, that it uses clean code and reusable components
+4.  (Optional) Clean up unnesesary comments in code.
 
 
 ## Active Decisions & Considerations
