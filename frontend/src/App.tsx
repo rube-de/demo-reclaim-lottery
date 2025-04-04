@@ -17,8 +17,11 @@ import { connectorsForWallets, lightTheme, RainbowKitProvider, Theme } from '@ra
 import { injectedWallet } from '@rainbow-me/rainbowkit/wallets'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AccountAvatar } from './components/AccountAvatar'
+import { ToastContainer } from 'react-toastify'
 
 const { DEV, VITE_NETWORK } = import.meta.env
+
+import 'react-toastify/dist/ReactToastify.css';
 
 import '@rainbow-me/rainbowkit/styles.css'
 
@@ -104,6 +107,18 @@ export const App: FC = () => {
             <Web3AuthContextProvider>
               <AppStateContextProvider>
                 <RouterProvider router={router} />
+                <ToastContainer
+                  position="bottom-right"
+                  autoClose={5000}
+                  hideProgressBar={false}
+                  newestOnTop={false}
+                  closeOnClick
+                  rtl={false}
+                  pauseOnFocusLoss
+                  draggable
+                  pauseOnHover
+                  theme="light"
+                />
               </AppStateContextProvider>
             </Web3AuthContextProvider>
           </RainbowKitProvider>

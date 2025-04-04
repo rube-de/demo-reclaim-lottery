@@ -18,7 +18,7 @@
     appearance: none;
     transition-property: border;
     transition-duration: 100ms;
-    border: 2px solid var(--brand-blue);
+    border: 2px solid var(--brand-blue); /* Match label color */
     color: var(--brand-extra-dark);
   }
 

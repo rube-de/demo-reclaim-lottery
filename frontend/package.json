@@ -25,6 +25,7 @@
     "react-dom": "^18.3.1",
     "react-responsive": "^10.0.0",
     "react-router-dom": "^6.27.0",
+    "react-toastify": "^11.0.5",
     "siwe": "^2.3.2",
     "viem": "^2.23.1",
     "wagmi": "^2.14.11"

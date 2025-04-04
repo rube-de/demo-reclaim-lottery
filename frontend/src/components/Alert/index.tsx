@@ -5,7 +5,7 @@ import { StringUtils } from '../../utils/string.utils'
 import { CheckIcon } from '../icons/CheckIcon'
 import { CancelIcon } from '../icons/CancelIcon'
 
-type AlertType = 'error' | 'success'
+type AlertType = 'error' | 'success' | 'info'
 
 interface AlertTypeValues {
   header: string
@@ -21,11 +21,16 @@ const alertTypeValuesMap: Record<AlertType, AlertTypeValues> = {
     header: 'Success',
     icon: <CheckIcon className={classes.checkIcon} width={106} height={106} />,
   },
+  info: {
+    header: 'Information',
+    icon: <CheckIcon className={classes.checkIcon} width={106} height={106} />,
+  },
 }
 
 const alertTypeClassMap: Record<AlertType, string> = {
   error: classes.alertError,
   success: classes.alertSuccess,
+  info: classes.alertInfo,
 }
 
 interface Props extends PropsWithChildren {
