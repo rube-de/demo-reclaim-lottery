@@ -57,8 +57,7 @@
 1.  Integrate Reclaim Protocol in the frontend. So that only participants which made right attestation can join the lottery
 2.  Integrate Reclaim Protocol in contracts to check attestation before participant can join lottery.
 3.  (Optional) Review code structure, that it uses clean code and reusable components
-4.  (Optional) Clean up unnesesary comments in code.
-
+4.  (Optional) Clean up unnecessary comments in code.
 
 ## Active Decisions & Considerations
 * Gas optimization deferred.
