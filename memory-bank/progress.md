@@ -28,6 +28,9 @@
     * Shared component styles updated (Button, Card, Input).
     * Shared CSS module created (`DashboardCommon.module.css`).
     * Dashboards refactored to use shared/specific styles.
+* Replaced inline transaction status messages with `react-toastify` notifications.
+* Fixed issue where all action buttons showed loading state; now only the clicked button shows loading.
+* Fixed issue where success toast appeared before transaction confirmation; implemented transaction monitoring using `useWaitForTransactionReceipt` to update toast and refetch data only after confirmation.
     * Redundant welcome/address info removed.
     * Input border color fixed.
     * Conditional rendering added for Start/End buttons.
@@ -35,10 +38,9 @@
     * Deposit action moved to status section.
 
 ## What's Left to Build
-1.  Consider adding toast notifications for transaction status.
-2.  Perform thorough testing of the frontend interactions.
+1.  Perform thorough testing of the frontend interactions (including toast notifications).
+2.  (Optional) Document security considerations (esp. conditional randomness).
 3.  (Optional) Document security considerations (esp. conditional randomness).
-4.  (Optional) Document security considerations (esp. conditional randomness).
 5.  (Optional) Prepare/finalize deployment scripts.
 6.  (Optional) Gas optimization analysis.
 7.  (Optional) Formal security audit.
@@ -50,11 +52,10 @@
 * OpenZeppelin dependency updated to v5.2.0.
 * Imports refactored to named imports.
 * Documentation (`backend/README.md`, `CONTRIBUTING.md`) created and refined.
-* Core frontend functionality implemented, including all contract interactions and winner display.
+* Core frontend functionality implemented, including all contract interactions, winner display, and toast notifications.
 * UI styling refined for consistency and compactness.
 
 ## Known Issues
-* Transaction status feedback could be improved (e.g., toasts).
 * (Minor) Participant dashboard still uses `.winnerCard` style which could be merged into common styles or simplified.
 
 ## Evolution of Project Decisions

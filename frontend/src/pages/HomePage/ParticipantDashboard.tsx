@@ -1,46 +1,23 @@
-import { FC, useEffect, useMemo, useState } from 'react'
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { FC, useMemo, useState, useEffect, useRef } from 'react' // Added useEffect, useRef
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi' // Added useWaitForTransactionReceipt back
 import { useQueryClient } from '@tanstack/react-query'
 import { formatEther, zeroAddress } from 'viem'
+import { toast, Id as ToastId } from 'react-toastify' // Import toast and Id type
 import { WAGMI_CONTRACT_CONFIG, WagmiUseReadContractReturnType } from '../../constants/config'
 import { Button } from '../../components/Button'
-import { Alert } from '../../components/Alert'
-import commonStyles from './DashboardCommon.module.css' // Import common styles
-import participantStyles from './ParticipantDasboard.module.css' // Import specific styles
+import { Alert } from '../../components/Alert' // Keep Alert for win/loss message
+import commonStyles from './DashboardCommon.module.css'
+import participantStyles from './ParticipantDasboard.module.css'
 
-// Re-use transaction status types/hook from OwnerDashboard (or move to a shared file)
-type TransactionStatus = {
-  isPending: boolean
-  isConfirming: boolean
-  isSuccess: boolean
-  isError: boolean
-  error: Error | null
-  hash?: `0x${string}`
-}
-
-const useTransactionState = (hash?: `0x${string}`): TransactionStatus => {
-  const {
-    isLoading: isConfirming,
-    isSuccess,
-    isError,
-    error,
-  } = useWaitForTransactionReceipt({ hash })
-
-  return {
-    isPending: false,
-    isConfirming,
-    isSuccess,
-    isError,
-    error,
-    hash,
-  }
-}
+// Removed TransactionStatus type and useTransactionState hook
 
 export const ParticipantDashboard: FC = () => {
   const { address } = useAccount()
   const queryClient = useQueryClient()
-  const [lastTxStatus, setLastTxStatus] = useState<TransactionStatus | null>(null)
-  const [lastTxAction, setLastTxAction] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<string | null>(null); // State to track specific pending action
+  const [currentTxHash, setCurrentTxHash] = useState<`0x${string}` | undefined>(undefined); // State for the current transaction hash
+  const currentToastId = useRef<ToastId | null>(null); // Ref to store the current toast ID
+  // Removed lastTxStatus and lastTxAction state
 
   // --- Read Contract Data ---
   const {
@@ -106,49 +83,107 @@ export const ParticipantDashboard: FC = () => {
   }, [address, winnerAddress]);
 
   // --- Write Contract Logic ---
-  const { writeContract, data: txHash, isPending: isWritePending, error: writeError } = useWriteContract()
-  const txStatus = useTransactionState(txHash)
-
-  // Update lastTxStatus
-  useEffect(() => {
-    if (isWritePending || txStatus.isConfirming || txStatus.isSuccess || txStatus.isError) {
-      setLastTxStatus({
-        isPending: isWritePending,
-        isConfirming: txStatus.isConfirming,
-        isSuccess: txStatus.isSuccess,
-        isError: txStatus.isError || !!writeError,
-        error: txStatus.error || writeError,
-        hash: txHash,
-      })
-    }
-  }, [isWritePending, txStatus.isConfirming, txStatus.isSuccess, txStatus.isError, txStatus.error, writeError, txHash])
+  const { writeContract, isPending: isWritePending, reset: resetWriteContract } = useWriteContract() // Added reset
 
   // Handle Enter Lottery
   const handleEnterLottery = () => {
-    setLastTxAction('enter');
-    setLastTxStatus({ isPending: true, isConfirming: false, isSuccess: false, isError: false, error: null });
+    const functionName = 'enter';
+    const loadingMessage = 'Submitting transaction...'; // Initial toast message
+    const successMessage = 'Successfully entered lottery!';
+    const errorMessagePrefix = 'Failed to enter lottery';
+
+    // Dismiss any existing toast
+    if (currentToastId.current) {
+      toast.dismiss(currentToastId.current);
+    }
+    currentToastId.current = toast.loading(loadingMessage); // Show initial toast
+    setPendingAction(functionName); // Set the specific action being processed
+
     writeContract({
       ...WAGMI_CONTRACT_CONFIG,
-      functionName: 'enter',
-    })
+      functionName,
+    }, {
+      onSuccess: (hash: `0x${string}`) => {
+        console.log(`Transaction submitted (${functionName}): ${hash}`);
+        setCurrentTxHash(hash); // Store hash to monitor
+        if (currentToastId.current) {
+          toast.update(currentToastId.current, { render: "Transaction submitted, waiting for confirmation...", type: "info", isLoading: true });
+        }
+      },
+      onError: (error: Error) => {
+        console.error(`Transaction submission error (${functionName}):`, error);
+        if (currentToastId.current) {
+          toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${error.message}`, type: "error", isLoading: false, autoClose: 5000 });
+        } else {
+          toast.error(`${errorMessagePrefix}: ${error.message}`);
+        }
+        resetWriteContract();
+        setPendingAction(null);
+        setCurrentTxHash(undefined);
+        currentToastId.current = null;
+      },
+    });
   }
 
-  // Refetch data on success
+  // Hook to monitor the transaction receipt
+  const {
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+    isError: isConfirmationError,
+    error: confirmationError,
+  } = useWaitForTransactionReceipt({
+    hash: currentTxHash,
+    query: {
+      enabled: !!currentTxHash,
+    },
+  });
+
+  // Effect to update toast based on transaction confirmation status
   useEffect(() => {
-    if (lastTxStatus?.isSuccess) {
+    if (!currentTxHash || !pendingAction) return;
+
+    // Only handle 'enter' action in this dashboard
+    if (pendingAction !== 'enter') return;
+
+    const successMessage = 'Successfully entered lottery!';
+    const errorMessagePrefix = 'Failed to enter lottery';
+
+    if (isConfirming && currentToastId.current) {
+      toast.update(currentToastId.current, { render: "Confirming transaction...", type: "info", isLoading: true });
+    } else if (isConfirmed && currentToastId.current) {
+      toast.update(currentToastId.current, { render: successMessage, type: "success", isLoading: false, autoClose: 5000 });
+      console.log(`Transaction confirmed (${pendingAction}): ${currentTxHash}`);
+
+      // Refetch data *after* confirmation
       const detailsQueryKey: readonly unknown[] = [WAGMI_CONTRACT_CONFIG.address, 'getLotteryDetails', undefined];
       const participantsQueryKey: readonly unknown[] = [WAGMI_CONTRACT_CONFIG.address, 'getParticipants', undefined];
-
       queryClient.invalidateQueries({ queryKey: detailsQueryKey });
       queryClient.invalidateQueries({ queryKey: participantsQueryKey });
-
       refetchLotteryDetails();
       refetchParticipantsList();
-    }
-  }, [lastTxStatus?.isSuccess, queryClient, refetchLotteryDetails, refetchParticipantsList, lastTxAction])
+      // Refetch winner address too, in case the lottery ended and winner was picked while confirming
+      refetchWinnerAddress();
 
-  // Combine loading/processing states
-  const isProcessing = isLoadingLotteryDetails || isLoadingParticipants || lastTxStatus?.isPending || lastTxStatus?.isConfirming;
+      // Reset state
+      resetWriteContract();
+      setPendingAction(null);
+      setCurrentTxHash(undefined);
+      currentToastId.current = null;
+
+    } else if (isConfirmationError && currentToastId.current) {
+      const errorReason = confirmationError?.message || 'Unknown confirmation error';
+      toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${errorReason}`, type: "error", isLoading: false, autoClose: 5000 });
+      console.error(`Transaction confirmation error (${pendingAction}):`, confirmationError);
+
+      // Reset state
+      resetWriteContract();
+      setPendingAction(null);
+      setCurrentTxHash(undefined);
+      currentToastId.current = null;
+    }
+    // Added refetchWinnerAddress to dependencies
+  }, [isConfirming, isConfirmed, isConfirmationError, confirmationError, currentTxHash, pendingAction, queryClient, refetchLotteryDetails, refetchParticipantsList, refetchWinnerAddress, resetWriteContract]);
+
 
   // Determine if user can enter
   const isLotteryFull = useMemo(() => {
@@ -158,18 +193,12 @@ export const ParticipantDashboard: FC = () => {
 
   const canEnter = currentState === 1 && !hasEntered && !isLotteryFull;
 
-  // Error message handling
-  const getErrorMessage = (status: TransactionStatus | null): string | null => {
-    if (!status || !status.isError) return null;
-    const errorReason = (status.error as any)?.shortMessage || status.error?.message || 'Transaction failed.';
-    return `Error: ${errorReason}`;
-  }
-  const errorMessage = getErrorMessage(lastTxStatus);
+  // Removed getErrorMessage function and errorMessage variable
 
   return (
     <div className={commonStyles.dashboardContainer}>
       {/* Welcome Section Removed */}
-      
+
       {/* Status Section */}
       <div>
         <h4>Lottery Status</h4>
@@ -186,7 +215,7 @@ export const ParticipantDashboard: FC = () => {
                 {participantCount?.toString() ?? '...'} / {maxAllowedParticipants?.toString() ?? '...'}
               </div>
             </div>
-            
+
             {/* Prize Pool - Row 2 */}
           </div>
           <div className={commonStyles.statusDisplayRow}>
@@ -196,7 +225,7 @@ export const ParticipantDashboard: FC = () => {
                 {currentPrize !== undefined ? formatEther(currentPrize) : '...'} ETH
               </div>
             </div>
-            
+
             {/* Winner Picked Removed */}
           </div>
 
@@ -210,7 +239,7 @@ export const ParticipantDashboard: FC = () => {
               </div>
             </div>
           )}
-          
+
           {/* Participant Status */}
           {hasEntered && (
             <Alert type={isCurrentUserWinner ? "success" : "info"}>
@@ -221,28 +250,28 @@ export const ParticipantDashboard: FC = () => {
               )}
             </Alert>
           )}
-          
+
           {/* Show message if entered but did not win */}
           {isWinnerPicked && hasEntered && !isCurrentUserWinner && (
             <div className={commonStyles.infoMessage}>Better luck next time!</div>
           )}
         </div>
       </div>
-      
+
       {/* Actions Section */}
       <div className={commonStyles.actionsSection}>
         <h4>Actions</h4>
         <div>
           <Button
             onClick={handleEnterLottery}
-            disabled={isProcessing || !canEnter || isWinnerPicked}
+            disabled={isWritePending || isLoadingLotteryDetails || isLoadingParticipants || !canEnter || isWinnerPicked} // Keep general disabled logic
             className={commonStyles.actionButton}
           >
-            {isProcessing && lastTxAction === 'enter' ? 'Processing...' : 'Enter Lottery'}
+            {isWritePending && pendingAction === 'enter' ? 'Processing...' : 'Enter Lottery'}
           </Button>
-          
+
           {/* Display reasons why entry might be disabled */}
-          {!isProcessing && (
+          {!isWritePending && !isLoadingLotteryDetails && !isLoadingParticipants && ( // Check loading states too
             <div className={commonStyles.infoMessage}>
               {currentState !== 1 && !isWinnerPicked && 'Lottery is not active for entry.'}
               {currentState === 1 && hasEntered && !isWinnerPicked && 'You have already entered.'}
@@ -253,17 +282,7 @@ export const ParticipantDashboard: FC = () => {
         </div>
       </div>
 
-      {/* Transaction Status/Error Messages */}
-      <div className={commonStyles.statusMessages}>
-        {lastTxStatus?.isConfirming && <p>Processing transaction ({lastTxAction})... Please wait.</p>}
-        {lastTxStatus?.isSuccess && <Alert type="success">Transaction successful! ({lastTxAction})</Alert>}
-        {errorMessage && <Alert type="error">{errorMessage} ({lastTxAction})</Alert>}
-        {lastTxStatus?.hash && (
-          <div className={commonStyles.txHash}>
-            Tx Hash: {lastTxStatus.hash}
-          </div>
-        )}
-      </div>
+      {/* Transaction Status/Error Messages Section Removed */}
     </div>
   )
 }

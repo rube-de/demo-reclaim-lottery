@@ -1,50 +1,25 @@
-import { FC, useMemo, useState, useEffect } from 'react' // Import useState, useEffect
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi' // Remove useQueryClient import from wagmi
-import { useQueryClient } from '@tanstack/react-query' // Import useQueryClient from react-query
-import { formatEther, parseEther, zeroAddress } from 'viem' // Import formatEther, parseEther, zeroAddress
+import { FC, useMemo, useState, useEffect, useRef } from 'react' // Added useEffect, useRef
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi' // Added useWaitForTransactionReceipt back
+import { useQueryClient } from '@tanstack/react-query'
+import { formatEther, parseEther, zeroAddress } from 'viem'
+import { toast, Id as ToastId } from 'react-toastify' // Import toast and Id type
 import { WAGMI_CONTRACT_CONFIG, WagmiUseReadContractReturnType } from '../../constants/config'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
-import { Alert } from '../../components/Alert' // Import Alert for feedback
-import styles from './DashboardCommon.module.css' // Import common styles
+// Removed Alert import
+import styles from './DashboardCommon.module.css'
 
-// Helper type for transaction states
-type TransactionStatus = {
-  isPending: boolean
-  isConfirming: boolean
-  isSuccess: boolean
-  isError: boolean
-  error: Error | null
-  hash?: `0x${string}`
-}
-
-// Helper hook to manage transaction state
-const useTransactionState = (hash?: `0x${string}`): TransactionStatus => {
-  const {
-    isLoading: isConfirming,
-    isSuccess,
-    isError,
-    error,
-  } = useWaitForTransactionReceipt({ hash })
-
-  return {
-    isPending: false, // This will be overridden by useWriteContract's isPending
-    isConfirming,
-    isSuccess,
-    isError,
-    error,
-    hash,
-  }
-}
+// Removed TransactionStatus type and useTransactionState hook
 
 export const OwnerDashboard: FC = () => {
   const { address } = useAccount()
-  const queryClient = useQueryClient() // Get query client instance
+  const queryClient = useQueryClient()
 
   // --- State for Inputs ---
   const [depositAmount, setDepositAmount] = useState('');
-  const [lastTxStatus, setLastTxStatus] = useState<TransactionStatus | null>(null)
-  const [lastTxAction, setLastTxAction] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<string | null>(null); // State to track specific pending action
+  const [currentTxHash, setCurrentTxHash] = useState<`0x${string}` | undefined>(undefined); // State for the current transaction hash
+  const currentToastId = useRef<ToastId | null>(null); // Ref to store the current toast ID
 
   // --- Read Contract Data ---
   // Fetch all lottery details in one call
@@ -102,97 +77,181 @@ export const OwnerDashboard: FC = () => {
 
   // --- Write Contract Logic ---
 
-  // Generic hook setup
-  const { writeContract, data: txHash, isPending: isWritePending, error: writeError } = useWriteContract()
-  const txStatus = useTransactionState(txHash)
-
-  // Update lastTxStatus whenever a new transaction is initiated or its status changes
-  useEffect(() => {
-    if (isWritePending || txStatus.isConfirming || txStatus.isSuccess || txStatus.isError) {
-      setLastTxStatus({
-        isPending: isWritePending,
-        isConfirming: txStatus.isConfirming,
-        isSuccess: txStatus.isSuccess,
-        isError: txStatus.isError || !!writeError,
-        error: txStatus.error || writeError,
-        hash: txHash,
-      })
-    }
-  }, [isWritePending, txStatus.isConfirming, txStatus.isSuccess, txStatus.isError, txStatus.error, writeError, txHash])
-
+  // Generic hook setup - only need writeContract and isPending now for button state
+  const { writeContract, isPending: isWritePending, reset: resetWriteContract } = useWriteContract() // Added reset
 
   // Function to handle common transaction logic
-  const handleTransaction = (functionName: string, args?: any[], value?: bigint) => {
-    setLastTxAction(functionName); // Track which action was initiated
-    setLastTxStatus({ // Reset status for new tx
-        isPending: true, isConfirming: false, isSuccess: false, isError: false, error: null
-    });
+  const handleTransaction = async (
+    functionName: string,
+    loadingMessage: string, // This will be used for the button text now
+    successMessage: string,
+    errorMessagePrefix: string,
+    args?: any[],
+    value?: bigint
+  ) => {
+    // Dismiss any existing toast before starting a new one
+    if (currentToastId.current) {
+      toast.dismiss(currentToastId.current);
+    }
+    // Show initial pending toast and store its ID
+    currentToastId.current = toast.loading("Submitting transaction...");
+    setPendingAction(functionName); // Set the specific action being processed
+
     writeContract({
       ...WAGMI_CONTRACT_CONFIG,
       functionName,
       args,
       value,
-    })
+    }, {
+      onSuccess: (hash: `0x${string}`) => { // Added type for hash
+        console.log(`Transaction submitted (${functionName}): ${hash}`);
+        setCurrentTxHash(hash); // Store the hash to monitor
+        // Update toast to indicate waiting for confirmation
+        if (currentToastId.current) {
+          toast.update(currentToastId.current, { render: "Transaction submitted, waiting for confirmation...", type: "info", isLoading: true });
+        }
+      },
+      onError: (error: Error) => { // Added type for error
+        console.error(`Transaction submission error (${functionName}):`, error);
+        // Update toast to show submission error
+        if (currentToastId.current) {
+          toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${error.message}`, type: "error", isLoading: false, autoClose: 5000 }); // Use error.message
+        } else {
+          // Fallback if toast ID wasn't set somehow
+          toast.error(`${errorMessagePrefix}: ${error.message}`); // Use error.message
+        }
+        resetWriteContract();
+        setPendingAction(null);
+        setCurrentTxHash(undefined); // Clear hash on error
+        currentToastId.current = null; // Clear toast ref
+      },
+    });
   }
 
-  // Specific Handlers
+  // Hook to monitor the transaction receipt
+  const {
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+    isError: isConfirmationError,
+    error: confirmationError,
+  } = useWaitForTransactionReceipt({
+    hash: currentTxHash,
+    query: {
+      enabled: !!currentTxHash, // Only run when there's a hash
+    },
+  });
+
+  // Effect to update toast based on transaction confirmation status
+  useEffect(() => {
+    if (!currentTxHash || !pendingAction) return; // Only run if monitoring a specific action
+
+    const actionSuccessMessages: Record<string, string> = {
+      depositPrize: 'Prize deposited successfully!',
+      startLottery: 'Lottery started successfully!',
+      endLottery: 'Lottery ended successfully!',
+      pickWinner: 'Winner picked successfully!',
+      resetLottery: 'Lottery reset successfully!',
+    };
+    const actionErrorMessages: Record<string, string> = {
+        depositPrize: 'Deposit failed',
+        startLottery: 'Failed to start lottery',
+        endLottery: 'Failed to end lottery',
+        pickWinner: 'Failed to pick winner',
+        resetLottery: 'Failed to reset lottery',
+    };
+
+    const successMessage = actionSuccessMessages[pendingAction] || 'Transaction successful!';
+    const errorMessagePrefix = actionErrorMessages[pendingAction] || 'Transaction failed';
+
+    if (isConfirming && currentToastId.current) {
+      // Update toast while confirming
+      toast.update(currentToastId.current, { render: "Confirming transaction...", type: "info", isLoading: true });
+    } else if (isConfirmed && currentToastId.current) {
+      // Update toast on success
+      toast.update(currentToastId.current, { render: successMessage, type: "success", isLoading: false, autoClose: 5000 });
+      console.log(`Transaction confirmed (${pendingAction}): ${currentTxHash}`);
+
+      // Perform refetching *after* confirmation
+      const queryKeyToInvalidate: readonly unknown[] = [WAGMI_CONTRACT_CONFIG.address, 'getLotteryDetails', undefined];
+      queryClient.invalidateQueries({ queryKey: queryKeyToInvalidate });
+      refetchLotteryDetails();
+      console.log('Data refetch triggered on confirmation.');
+
+      if (pendingAction === 'pickWinner' || pendingAction === 'resetLottery') {
+        refetchWinnerAddress();
+      }
+      if (pendingAction === 'depositPrize') {
+        setDepositAmount('');
+      }
+
+      // Reset state after success
+      resetWriteContract();
+      setPendingAction(null);
+      setCurrentTxHash(undefined);
+      currentToastId.current = null;
+
+    } else if (isConfirmationError && currentToastId.current) {
+      // Update toast on error
+      const errorReason = confirmationError?.message || 'Unknown confirmation error'; // Use .message
+      toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${errorReason}`, type: "error", isLoading: false, autoClose: 5000 });
+      console.error(`Transaction confirmation error (${pendingAction}):`, confirmationError);
+
+      // Reset state after error
+      resetWriteContract();
+      setPendingAction(null);
+      setCurrentTxHash(undefined);
+      currentToastId.current = null;
+    }
+  }, [isConfirming, isConfirmed, isConfirmationError, confirmationError, currentTxHash, pendingAction, queryClient, refetchLotteryDetails, refetchWinnerAddress, resetWriteContract]);
+
+
+  // Specific Handlers (now just call handleTransaction)
   const handleDepositPrize = () => {
     try {
       const amountWei = parseEther(depositAmount || '0')
       if (amountWei <= 0n) {
-        setLastTxStatus({ isPending: false, isConfirming: false, isSuccess: false, isError: true, error: new Error("Deposit amount must be positive.") });
-        setLastTxAction('depositPrize');
+        toast.error("Deposit amount must be positive.");
         return;
       }
-      handleTransaction('depositPrize', [], amountWei)
+      handleTransaction(
+        'depositPrize',
+        'Depositing...', // Button text during pending
+        'Prize deposited successfully!',
+        'Deposit failed',
+        [],
+        amountWei
+      )
     } catch (e) {
-        setLastTxStatus({ isPending: false, isConfirming: false, isSuccess: false, isError: true, error: new Error("Invalid deposit amount format.") });
-        setLastTxAction('depositPrize');
+      toast.error("Invalid deposit amount format.");
     }
   }
-  const handleStartLottery = () => handleTransaction('startLottery')
-  const handleEndLottery = () => handleTransaction('endLottery')
-  const handlePickWinner = () => handleTransaction('pickWinner')
-  const handleResetLottery = () => handleTransaction('resetLottery')
+  const handleStartLottery = () => handleTransaction(
+    'startLottery',
+    'Starting...', // Button text during pending
+    'Lottery started successfully!',
+    'Failed to start lottery'
+  )
+  const handleEndLottery = () => handleTransaction(
+    'endLottery',
+    'Ending...', // Button text during pending
+    'Lottery ended successfully!',
+    'Failed to end lottery'
+  )
+  const handlePickWinner = () => handleTransaction(
+    'pickWinner',
+    'Picking...', // Button text during pending
+    'Winner picked successfully!',
+    'Failed to pick winner'
+  )
+  const handleResetLottery = () => handleTransaction(
+    'resetLottery',
+    'Resetting...', // Button text during pending
+    'Lottery reset successfully!',
+    'Failed to reset lottery'
+  )
 
-  // Refetch data on successful transaction completion
-  useEffect(() => {
-    if (lastTxStatus?.isSuccess) {
-      const queryKeyToInvalidate: readonly unknown[] = [WAGMI_CONTRACT_CONFIG.address, 'getLotteryDetails', undefined];
-      console.log(`Transaction ${lastTxAction} succeeded. Invalidating query key:`, queryKeyToInvalidate);
-      queryClient.invalidateQueries({ queryKey: queryKeyToInvalidate }); // Invalidate cache
-      console.log('Query invalidation called.');
-
-      // Explicitly refetch the main details
-      refetchLotteryDetails();
-      console.log('Explicit refetch called for details.');
-
-      // Also refetch winner if pickWinner or resetLottery succeeded
-      if (lastTxAction === 'pickWinner' || lastTxAction === 'resetLottery') {
-        refetchWinnerAddress();
-        console.log('Explicit refetch called for winner.');
-      }
-
-      setDepositAmount(''); // Clear deposit input on success
-      // Optionally clear status after a delay
-      // setTimeout(() => setLastTxStatus(null), 5000);
-    }
-    // Add refetch functions and lastTxAction to dependency array
-  }, [lastTxStatus?.isSuccess, queryClient, refetchLotteryDetails, refetchWinnerAddress, lastTxAction])
-
-  // Combine all pending/loading states
-  const isProcessingTx = lastTxStatus?.isPending || lastTxStatus?.isConfirming || isLoadingLotteryDetails;
-
-  // Determine the specific error message
-  const getErrorMessage = (status: TransactionStatus | null): string | null => {
-    if (!status || !status.isError) return null;
-    // Attempt to parse custom contract errors or show generic message
-    const errorReason = (status.error as any)?.shortMessage || status.error?.message || 'Transaction failed.';
-    // You might add more specific parsing here based on known custom errors
-    return `Error: ${errorReason}`;
-  }
-
-  const errorMessage = getErrorMessage(lastTxStatus);
+  // Removed isProcessingTx variable
+  // Removed getErrorMessage function and errorMessage variable
 
   return (
     <div className={styles.dashboardContainer}>
@@ -227,14 +286,14 @@ export const OwnerDashboard: FC = () => {
               label="Deposit Amount (ETH)"
               value={depositAmount}
               onChange={setDepositAmount}
-              disabled={!!isProcessingTx}
+              disabled={isWritePending} // Use isWritePending directly
             />
             <Button
               onClick={handleDepositPrize}
-              disabled={!!isProcessingTx || !depositAmount}
+              disabled={isWritePending || !depositAmount} // Use isWritePending directly
               className={styles.actionButton}
             >
-              {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'depositPrize' ? 'Depositing...' : 'Deposit Prize'}
+              {isWritePending && pendingAction === 'depositPrize' ? 'Depositing...' : 'Deposit Prize'}
             </Button>
           </div>
         </div>
@@ -258,67 +317,48 @@ export const OwnerDashboard: FC = () => {
 
         {/* Start Lottery - Only show if Inactive */}
         {currentState === 0 && (
-          // <div className={styles.actionItem}> Removed wrapper
             <Button
               onClick={handleStartLottery}
-              disabled={!!isProcessingTx} // Keep disabled check
-              className={styles.actionButton} // Apply common button class if needed
+              disabled={isWritePending} // Use isWritePending directly
+              className={styles.actionButton}
             >
-              {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'startLottery' ? 'Starting...' : 'Start Lottery'}
+              {isWritePending && pendingAction === 'startLottery' ? 'Starting...' : 'Start Lottery'}
             </Button>
-          // </div> Removed wrapper
         )}
 
         {/* End Lottery - Only show if Active */}
         {currentState === 1 && (
-          // <div className={styles.actionItem}> Removed wrapper
             <Button
               onClick={handleEndLottery}
-              disabled={!!isProcessingTx} // Keep disabled check
-              className={styles.actionButton} // Apply common button class if needed
+              disabled={isWritePending} // Use isWritePending directly
+              className={styles.actionButton}
             >
-              {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'endLottery' ? 'Ending...' : 'End Lottery'}
+              {isWritePending && pendingAction === 'endLottery' ? 'Ending...' : 'End Lottery'}
             </Button>
-          // </div> Removed wrapper
         )}
 
         {/* Pick Winner */}
-        {/* <div className={styles.actionItem}> Removed wrapper */}
           <Button
             onClick={handlePickWinner}
-            // Disable if not Inactive, or winner already picked, or no participants, or prize is zero
-            disabled={!!isProcessingTx || currentState !== 0 || isWinnerPicked === undefined || isWinnerPicked || participantCount === 0n || currentPrize === 0n}
-            className={styles.actionButton} // Apply common button class if needed
+            // Disable if not Inactive, or winner already picked, or no participants, or prize is zero, or write is pending
+            disabled={isWritePending || currentState !== 0 || isWinnerPicked === undefined || isWinnerPicked || participantCount === 0n || currentPrize === 0n}
+            className={styles.actionButton}
           >
-            {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'pickWinner' ? 'Picking...' : 'Pick Winner'}
+            {isWritePending && pendingAction === 'pickWinner' ? 'Picking...' : 'Pick Winner'}
           </Button>
-        {/* </div> Removed wrapper */}
 
          {/* Reset Lottery */}
-        {/* <div className={styles.actionItem}> Removed wrapper */}
           <Button
             onClick={handleResetLottery}
-            // Disable if winner not picked yet
-            disabled={!!isProcessingTx || isWinnerPicked === undefined || !isWinnerPicked}
-            className={styles.actionButton} // Apply common button class if needed
+            // Disable if winner not picked yet or write is pending
+            disabled={isWritePending || isWinnerPicked === undefined || !isWinnerPicked}
+            className={styles.actionButton}
           >
-            {(lastTxStatus?.isPending || lastTxStatus?.isConfirming) && lastTxAction === 'resetLottery' ? 'Resetting...' : 'Reset Lottery'}
+            {isWritePending && pendingAction === 'resetLottery' ? 'Resetting...' : 'Reset Lottery'}
           </Button>
-        {/* </div> Removed wrapper */}
       </div>
 
-      {/* Transaction Status/Error Messages */}
-      <div className={styles.statusMessages}>
-        {/* Use a simple paragraph for confirming state as Alert doesn't support info/warning */}
-        {lastTxStatus?.isConfirming && <p>Processing transaction ({lastTxAction})... Please wait.</p>}
-        {lastTxStatus?.isSuccess && <Alert type="success">Transaction successful! ({lastTxAction})</Alert>}
-        {errorMessage && <Alert type="error">{errorMessage} ({lastTxAction})</Alert>}
-        {lastTxStatus?.hash && (
-          <div className={styles.txHash}> {/* Use common style for hash */}
-            Tx Hash: {lastTxStatus.hash}
-          </div>
-        )}
-      </div>
+      {/* Transaction Status/Error Messages Section Removed */}
     </div>
   )
 }

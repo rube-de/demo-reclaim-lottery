@@ -35,10 +35,13 @@
 * Recompiled contract and updated frontend configuration (`.env.development`) with new address (handled by user).
 * Updated `OwnerDashboard.tsx` and `ParticipantDashboard.tsx` to read and display the `lotteryWinner`.
 * Added "Better luck next time" message to `ParticipantDashboard.tsx`.
-* Fixed UI update delay issue by adding explicit `refetch()` calls after `invalidateQueries()` in transaction success handlers.
-* Refined UI styling for Owner and Participant dashboards:
-    * Updated shared component styles (Button, Card, Input) for consistent theming.
-    * Created shared CSS module (`DashboardCommon.module.css`) and refactored dashboards to use it.
+    * Fixed UI update delay issue by adding explicit `refetch()` calls after `invalidateQueries()` in transaction success handlers.
+    * Refined UI styling for Owner and Participant dashboards:
+        * Updated shared component styles (Button, Card, Input) for consistent theming.
+        * Created shared CSS module (`DashboardCommon.module.css`) and refactored dashboards to use it.
+    * Replaced inline transaction status messages with `react-toastify` notifications in `OwnerDashboard.tsx` and `ParticipantDashboard.tsx`.
+    * Fixed issue where all action buttons showed loading state; now only the clicked button shows loading by tracking specific `pendingAction` state.
+    * Fixed issue where success toast appeared before transaction confirmation; implemented transaction monitoring using `useWaitForTransactionReceipt` to update toast and refetch data only after confirmation.
     * Removed redundant welcome/address display.
     * Updated Input border color to match label.
     * Implemented conditional rendering for Start/End Lottery buttons.
@@ -46,10 +49,9 @@
     * Moved Deposit action into the status section in Owner dashboard.
 
 ## Next Steps
-1.  Consider adding toast notifications for transaction status instead of/in addition to the current inline messages.
-2.  Perform thorough testing of the frontend interactions.
+1.  Perform thorough testing of the frontend interactions (including toast notifications).
+2.  (Optional) Document security considerations (esp. conditional randomness).
 3.  (Optional) Document security considerations (esp. conditional randomness).
-4.  (Optional) Document security considerations (esp. conditional randomness).
 5.  (Optional) Prepare/finalize deployment scripts.
 6.  (Optional) Gas optimization analysis.
 7.  (Optional) Formal security audit.
@@ -63,6 +65,10 @@
 * Using OpenZeppelin's EnumerableSet for participant tracking.
 * Implementing ReentrancyGuard for prize distribution safety.
 * Using conditional randomness (`Sapphire.randomBytes` or pseudo-random based on chain ID).
+* Using `toast.loading`, `toast.update`, and `toast.dismiss` for transaction feedback, driven by `useWriteContract` and `useWaitForTransactionReceipt` hooks.
+* Tracking specific pending action (`pendingAction` state) to show loading state only on the relevant button.
+* Storing transaction hash (`currentTxHash`) to monitor confirmation status.
+* Using `useEffect` to react to changes in transaction confirmation status (`useWaitForTransactionReceipt`) and update toast/refetch data accordingly.
 
 ## Important Patterns & Preferences
 * Following TDD approach (Red-Green-Refactor)
@@ -75,5 +81,5 @@
 * Need to be explicit about pseudo-randomness limitations in documentation (especially the fallback).
 * Prize distribution uses `call()` for compatibility.
 * Testing reverts on Sapphire requires `await tx.wait()` and checking the specific error message string `"transaction execution reverted"`.
-* Shell command chaining requires standard `&&`, not `&&`.
+* Shell command chaining requires standard `&&`, not `&&`. (Reinforced: Do not escape `&&` as `&&` in `execute_command` or `attempt_completion` commands).
 * Explicit `refetch()` calls are needed alongside `invalidateQueries()` for immediate UI updates with Wagmi/React Query in this setup.

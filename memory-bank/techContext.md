@@ -25,6 +25,8 @@
     * TanStack Query (React Query) v5.45.1 (Server state, caching, background updates)
     * React Context API (likely for global UI state like theme, auth status)
     * `useState`/`useReducer` (Component-local state)
+* **Notifications**:
+    * `react-toastify` ^11.0.5 (Toast notifications for transaction status)
 * **Styling**:
     * CSS Modules (inferred from file structure)
     * Fonts: `@fontsource-variable/figtree`, `@fontsource-variable/roboto-mono`
@@ -142,6 +144,7 @@ npm run test
 * **TanStack Query**: Server state management
 * **React Router**: Client-side routing
 * **SIWE**: Authentication
+* **react-toastify**: Toast notifications
 
 ## Tool Usage Patterns
 
