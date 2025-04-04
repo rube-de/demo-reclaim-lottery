@@ -45,9 +45,10 @@
 
 .buttonSolid {
   &.buttonPrimary {
-    background-color: var(--brand-extra-dark);
+    /* Match target screenshot: dark blue bg, white text, no border */
+    background-color: var(--brand-extra-dark); 
     color: var(--white);
-    border: 1px var(--white) solid;
+    border: 1px solid transparent; /* Remove visible border */
   }
 
   &.buttonSecondary {

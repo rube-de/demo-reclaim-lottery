@@ -5,6 +5,7 @@
 * Uses OpenZeppelin's v5 base contracts for security and functionality (Ownable, ReentrancyGuard, EnumerableSet).
 * Event-driven architecture for tracking lottery state changes.
 * Uses Solidity Custom Errors for reverts.
+* Stores winner address in public state variable (`lotteryWinner`) for frontend access.
 
 ## Key Technical Decisions
 1. **Participant Management**:
@@ -46,7 +47,80 @@ flowchart TD
      * Participant limit enforcement
      * Unique address requirement
     - Owner ends lottery (endLottery)
-    - Owner picks winner (pickWinner), which calls internal `_getRandomIndex` for network-appropriate randomness.
+    - Owner picks winner (pickWinner), which calls internal `_getRandomIndex` for network-appropriate randomness and sets `lotteryWinner`.
     - `pickWinner` uses ReentrancyGuard.
     - Contract transfers prize to winner via `call()`.
-    - Owner can reset lottery for new round (`resetLottery`).
+    - Owner can reset lottery for new round (`resetLottery`), which clears `lotteryWinner`.
+
+---
+
+## Frontend Architecture
+
+*   **Entry Point:** `main.tsx` initializes providers (Wagmi, RainbowKit, React Query, Contexts) and renders the root `App` component.
+*   **Root Component:** `App.tsx` sets up routing (`react-router-dom`) and the main application layout.
+*   **Structure:** Follows a standard React/Vite structure:
+    *   `components/`: Reusable UI elements (e.g., `Button`, `Card`, `Layout`), often using CSS Modules for scoped styling.
+    *   `pages/`: Feature-specific view components mapped to routes. Dashboard pages (`OwnerDashboard`, `ParticipantDashboard`) utilize a shared CSS module (`DashboardCommon.module.css`) for common layout and specific modules for unique styles.
+    *   `hooks/`: Custom hooks for reusable logic (e.g., `useAppState`, `useWeb3Auth`).
+    *   `providers/`: React Context API providers for shared state (e.g., `AppStateProvider`, `Web3AuthProvider`).
+    *   `constants/`: Application-wide constants.
+    *   `types/`: Shared TypeScript definitions.
+    *   `utils/`: Common utility functions.
+*   **State Management:**
+    *   **Server State:** TanStack Query (React Query) for fetching, caching, and managing data from the blockchain/backend.
+    *   **Shared UI State:** React Context API (`providers/`) for global state like authentication status or theme.
+    *   **Local Component State:** `useState`/`useReducer` for state confined to individual components.
+    *   **Web3 Interaction:** Abstracted via Wagmi hooks, RainbowKit for wallet connection, and custom hooks (`useWeb3Auth`). Sapphire compatibility handled by specific wrappers.
+    *   **Data Refetching:** Uses React Query's `invalidateQueries` followed by Wagmi's explicit `refetch()` function in transaction success handlers to ensure immediate UI updates.
+
+```mermaid
+graph TD
+    subgraph Frontend Application
+        direction LR
+        main[main.tsx Entry Point] --> App[App.tsx Root]
+
+        subgraph Providers
+            direction TB
+            Wagmi[WagmiProvider]
+            RainbowKit[RainbowKitProvider]
+            ReactQuery[QueryClientProvider]
+            CustomContexts[Custom Contexts e.g., AppStateProvider]
+        end
+
+        subgraph Core Structure
+            direction TB
+            Routing[React Router]
+            Layout[Layout Components]
+            Pages[Pages (Views)]
+            Components[Reusable UI Components]
+        end
+
+        subgraph State & Logic
+             direction TB
+             ReactQueryHooks[React Query Hooks] -->|interacts with| Blockchain/Backend
+             WagmiHooks[Wagmi Hooks] -->|interacts with| Blockchain/Backend
+             ContextHooks[useContext Hooks]
+             CustomHooks[Custom Hooks e.g., useAppState]
+             LocalState[useState / useReducer]
+        end
+
+        subgraph Utils & Types
+            direction TB
+            Utilities[utils/]
+            Types[types/]
+            Constants[constants/]
+        end
+
+        main --> Providers
+        Providers --> App
+        App --> Routing
+        Routing --> Pages & Layout
+        Pages --> Components & StateLogic
+        Layout --> Components
+        Components --> LocalState & ContextHooks
+        StateLogic --> Utilities & Types & Constants
+
+    end
+
+    FrontendApplication -->|reads/writes| Lottery[Lottery.sol via Wagmi/Viem]
+```

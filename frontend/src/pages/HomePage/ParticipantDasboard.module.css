@@ -1,0 +1,41 @@
+/* Styles specific to Participant Dashboard */
+/* Common styles moved to DashboardCommon.module.css */
+
+  .statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  
+  /* Removed .statCard styles */
+  
+  /* Style direct children of statsGrid */
+  .statsGrid > div {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem; /* Keep padding for content spacing */
+    border: 1px solid var(--gray-light); /* Add a light border for separation */
+    border-radius: 8px; /* Keep rounded corners */
+  }
+  
+  /* .statLabel and .statValue moved to common */
+  
+  .winnerCard {
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px var(--gray-dark-box-shadow);
+    margin-top: 1rem;
+  }
+  
+  .winnerAddress {
+    font-family: 'Roboto Mono Variable', monospace;
+    font-size: 0.875rem;
+    word-break: break-all;
+  }
+  
+  /* .actionsSection, .actionButton, .statusIndicator, .statusDot*, */
+  /* .statusMessages, .txHash, .infoMessage, .successText moved to common */
+
+/* Removed .entryStatusAlert styles as the Alert is now outside the status section */

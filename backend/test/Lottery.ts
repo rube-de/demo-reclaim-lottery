@@ -335,6 +335,9 @@ describe("Lottery", function () {
       expect(await ethers.provider.getBalance(await lottery.getAddress())).to.equal(0);
       // Check prizeAmount state is zero
       expect(await lottery.prizeAmount()).to.equal(0);
+      // Check winner state variable
+      const winnerAddress = receivedPrize1 ? await addr1.getAddress() : await addr2.getAddress();
+      expect(await lottery.lotteryWinner()).to.equal(winnerAddress);
     });
 
     it("Should revert when lottery is active", async function () {
@@ -414,6 +417,90 @@ describe("Lottery", function () {
       }
     });
   });
+
+  describe("resetLottery()", function () { // Add describe block for resetLottery
+    it("Should allow owner to reset lottery after winner picked", async function () {
+      // Setup: Complete one round
+      await lottery.connect(owner).startLottery();
+      await lottery.connect(addr1).enter();
+      await lottery.connect(owner).depositPrize({ value: ethers.parseEther("1.0") });
+      await lottery.connect(owner).endLottery();
+      await lottery.connect(owner).pickWinner();
+
+      // Action is common
+      const action = lottery.connect(owner).resetLottery();
+
+      if (network.name === 'hardhat') {
+        // Hardhat specific: Check event emission
+        await expect(action).to.emit(lottery, "LotteryReset");
+      } else {
+        // console.warn(`Skipping event check on network: ${network.name}`);
+        await action; // Perform action without check
+      }
+
+      // Check state reset regardless of network
+      expect(await lottery.lotteryStatus()).to.equal(0); // Inactive
+      expect(await lottery.getParticipantCount()).to.equal(0);
+      expect(await lottery.prizeAmount()).to.equal(0);
+      expect(await lottery.winnerPicked()).to.be.false;
+      expect(await lottery.lotteryWinner()).to.equal(ethers.ZeroAddress); // Check winner reset
+    });
+
+    it("Should revert when non-owner tries to reset", async function () {
+      // Setup: Complete one round
+      await lottery.connect(owner).startLottery();
+      await lottery.connect(addr1).enter();
+      await lottery.connect(owner).depositPrize({ value: ethers.parseEther("1.0") });
+      await lottery.connect(owner).endLottery();
+      await lottery.connect(owner).pickWinner();
+
+      // Action is common
+      const action = lottery.connect(addr1).resetLottery();
+
+      if (network.name === 'hardhat') {
+        // Hardhat specific: Check custom error (Ownable v5 uses OwnableUnauthorizedAccount)
+        await expect(action).to.be.revertedWithCustomError(lottery, "OwnableUnauthorizedAccount").withArgs(await addr1.getAddress());
+      } else {
+        // console.warn(`Skipping specific revert check on network: ${network.name}`);
+        // Other networks: Check for any revert
+        try {
+          const tx = await action;
+          await tx.wait();
+          expect.fail("Transaction did not revert as expected");
+        } catch (error: any) {
+          //  console.log("Caught expected error (cannot check message):", error.message);
+           expect(error.message).to.include("transaction execution reverted"); // Check for Sapphire revert string
+        }
+      }
+    });
+
+    it("Should revert when winner not picked yet", async function () {
+      // Setup: End lottery but don't pick winner
+      await lottery.connect(owner).startLottery();
+      await lottery.connect(addr1).enter();
+      await lottery.connect(owner).depositPrize({ value: ethers.parseEther("1.0") });
+      await lottery.connect(owner).endLottery();
+
+      // Action is common
+      const action = lottery.connect(owner).resetLottery();
+
+      if (network.name === 'hardhat') {
+        // Hardhat specific: Check custom error
+        await expect(action).to.be.revertedWithCustomError(lottery, "WinnerNotPickedYet");
+      } else {
+        // console.warn(`Skipping specific revert check on network: ${network.name}`);
+        // Other networks: Check for any revert
+        try {
+          const tx = await action;
+          await tx.wait();
+          expect.fail("Transaction did not revert as expected");
+        } catch (error: any) {
+          //  console.log("Caught expected error (cannot check message):", error.message);
+           expect(error.message).to.include("transaction execution reverted"); // Check for Sapphire revert string
+        }
+      }
+    });
+  }); // End describe("resetLottery()")
 
   describe("View Functions", function () {
     it("Should return participant list", async function () {
