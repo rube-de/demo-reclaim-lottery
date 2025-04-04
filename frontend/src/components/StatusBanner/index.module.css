@@ -1,0 +1,47 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* Space between icon and text */
+  padding: 0.75rem 1rem; /* Compact padding */
+  border-radius: 8px;
+  font-size: 0.9rem; /* Slightly smaller font */
+  font-weight: 500;
+  margin-bottom: 1rem; /* Space below the banner */
+  border: 1px solid transparent; /* Base border */
+}
+
+.icon {
+  flex-shrink: 0; /* Prevent icon from shrinking */
+  width: 18px; /* Smaller icon size */
+  height: 18px;
+}
+
+.bannerSuccess {
+  background-color: var(--green-light); /* Use a light green */
+  border-color: var(--green);
+  color: var(--green-dark); /* Darker green text for contrast */
+}
+
+.bannerSuccess .icon {
+  fill: var(--green);
+}
+
+.bannerInfo {
+  background-color: var(--blue-light); /* Use a light blue */
+  border-color: var(--brand-blue);
+  color: var(--brand-dark-blue); /* Darker blue text */
+}
+
+.bannerInfo .icon {
+  fill: var(--brand-blue);
+}
+
+.bannerError {
+  background-color: var(--red-light); /* Use a light red */
+  border-color: var(--red);
+  color: var(--red-dark); /* Darker red text */
+}
+
+.bannerError .icon {
+  fill: var(--red);
+}

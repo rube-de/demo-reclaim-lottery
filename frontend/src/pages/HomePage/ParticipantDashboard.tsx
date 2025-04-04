@@ -3,11 +3,12 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { useQueryClient } from '@tanstack/react-query'
 import { formatEther, zeroAddress } from 'viem'
 import { toast, Id as ToastId } from 'react-toastify' // Import toast and Id type
-import { WAGMI_CONTRACT_CONFIG, WagmiUseReadContractReturnType } from '../../constants/config'
-import { Button } from '../../components/Button'
-import { Alert } from '../../components/Alert' // Keep Alert for win/loss message
-import commonStyles from './DashboardCommon.module.css'
-import participantStyles from './ParticipantDasboard.module.css'
+import { WAGMI_CONTRACT_CONFIG, WagmiUseReadContractReturnType } from '../../constants/config';
+import { Button } from '../../components/Button';
+// import { Alert } from '../../components/Alert'; // No longer using Alert here
+import { StatusBanner } from '../../components/StatusBanner'; // Import the new component
+import commonStyles from './DashboardCommon.module.css';
+import participantStyles from './ParticipantDasboard.module.css';
 
 // Removed TransactionStatus type and useTransactionState hook
 
@@ -106,8 +107,20 @@ export const ParticipantDashboard: FC = () => {
       onSuccess: (hash: `0x${string}`) => {
         console.log(`Transaction submitted (${functionName}): ${hash}`);
         setCurrentTxHash(hash); // Store hash to monitor
+        // Update toast to indicate waiting for confirmation, include full hash using JSX
         if (currentToastId.current) {
-          toast.update(currentToastId.current, { render: "Transaction submitted, waiting for confirmation...", type: "info", isLoading: true });
+          toast.update(currentToastId.current, {
+            render: (
+              <div>
+                <div>Transaction submitted, waiting for confirmation...</div>
+                <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
+                  Tx Hash: {hash}
+                </div>
+              </div>
+            ),
+            type: "info",
+            isLoading: true
+          });
         }
       },
       onError: (error: Error) => {
@@ -149,9 +162,34 @@ export const ParticipantDashboard: FC = () => {
     const errorMessagePrefix = 'Failed to enter lottery';
 
     if (isConfirming && currentToastId.current) {
-      toast.update(currentToastId.current, { render: "Confirming transaction...", type: "info", isLoading: true });
+      // Update toast while confirming, include full hash using JSX
+      toast.update(currentToastId.current, {
+        render: (
+          <div>
+            <div>Confirming transaction...</div>
+            <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
+              Tx Hash: {currentTxHash}
+            </div>
+          </div>
+        ),
+        type: "info",
+        isLoading: true
+      });
     } else if (isConfirmed && currentToastId.current) {
-      toast.update(currentToastId.current, { render: successMessage, type: "success", isLoading: false, autoClose: 5000 });
+      // Update toast on success, include full hash using JSX
+      toast.update(currentToastId.current, {
+        render: (
+          <div>
+            <div>{successMessage}</div>
+            <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
+              Tx Hash: {currentTxHash}
+            </div>
+          </div>
+        ),
+        type: "success",
+        isLoading: false,
+        autoClose: 5000
+      });
       console.log(`Transaction confirmed (${pendingAction}): ${currentTxHash}`);
 
       // Refetch data *after* confirmation
@@ -239,32 +277,33 @@ export const ParticipantDashboard: FC = () => {
               </div>
             </div>
           )}
-
-          {/* Participant Status */}
-          {hasEntered && (
-            <Alert type={isCurrentUserWinner ? "success" : "info"}>
-              {isCurrentUserWinner ? (
-                <strong className={commonStyles.successText}>🎉 Congratulations! You won this lottery! 🎉</strong>
-              ) : (
-                <strong>You have entered this lottery!</strong>
-              )}
-            </Alert>
-          )}
-
-          {/* Show message if entered but did not win */}
-          {isWinnerPicked && hasEntered && !isCurrentUserWinner && (
-            <div className={commonStyles.infoMessage}>Better luck next time!</div>
-          )}
-        </div>
+        </div> {/* End of commonStyles.statusSection */}
       </div>
 
-      {/* Actions Section */}
-      <div className={commonStyles.actionsSection}>
-        <h4>Actions</h4>
-        <div>
+      {/* Participant Status Banner & Message (Moved Below Status Section) */}
+      {hasEntered && (
+        <StatusBanner type={isCurrentUserWinner ? "success" : "info"}>
+          {isCurrentUserWinner ? (
+            <strong>🎉 Congratulations! You won this lottery! 🎉</strong> // Use strong tag directly
+          ) : (
+            <strong>You have entered this lottery!</strong>
+          )}
+        </StatusBanner>
+      )}
+      {isWinnerPicked && hasEntered && !isCurrentUserWinner && (
+        <div className={commonStyles.infoMessage} style={{ textAlign: 'center', marginTop: '0.5rem' }}> {/* Adjusted margin */}
+          Better luck next time!
+        </div>
+      )}
+
+      {/* Actions Section - Conditionally Rendered */}
+      {!hasEntered && (
+        <div className={commonStyles.actionsSection}>
+          <h4>Actions</h4>
+          <div>
           <Button
             onClick={handleEnterLottery}
-            disabled={isWritePending || isLoadingLotteryDetails || isLoadingParticipants || !canEnter || isWinnerPicked} // Keep general disabled logic
+            disabled={!!currentTxHash || isWritePending || isLoadingLotteryDetails || isLoadingParticipants || !canEnter || isWinnerPicked} // Disable if tx pending or other conditions
             className={commonStyles.actionButton}
           >
             {isWritePending && pendingAction === 'enter' ? 'Processing...' : 'Enter Lottery'}
@@ -279,9 +318,9 @@ export const ParticipantDashboard: FC = () => {
               {isWinnerPicked && 'Lottery has ended.'}
             </div>
           )}
+          </div>
         </div>
-      </div>
-
+      )}
       {/* Transaction Status/Error Messages Section Removed */}
     </div>
   )

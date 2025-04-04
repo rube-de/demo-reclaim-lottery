@@ -36,9 +36,15 @@
     * Conditional rendering added for Start/End buttons.
     * Status display refactored to compact row layout.
     * Deposit action moved to status section.
+    * Frontend transaction toasts now display the full transaction hash using JSX for better formatting.
+    * Frontend action buttons are disabled while a transaction is pending confirmation (`!!currentTxHash`).
+    * New `StatusBanner` component created for compact status display.
+    * Participant Dashboard UI refined:
+        * "Actions" section hidden when user has already entered.
+        * Replaced large `Alert` with compact `StatusBanner` for entry/win status display below main details.
 
 ## What's Left to Build
-1.  Perform thorough testing of the frontend interactions (including toast notifications).
+1.  Perform thorough testing of the frontend interactions (including toast notifications, conditional rendering, and StatusBanner display).
 2.  (Optional) Document security considerations (esp. conditional randomness).
 3.  (Optional) Document security considerations (esp. conditional randomness).
 5.  (Optional) Prepare/finalize deployment scripts.
@@ -52,8 +58,8 @@
 * OpenZeppelin dependency updated to v5.2.0.
 * Imports refactored to named imports.
 * Documentation (`backend/README.md`, `CONTRIBUTING.md`) created and refined.
-* Core frontend functionality implemented, including all contract interactions, winner display, and toast notifications.
-* UI styling refined for consistency and compactness.
+* Core frontend functionality implemented, including all contract interactions, winner display, and enhanced toast notifications (using JSX to display full tx hash and disabling buttons during pending state).
+* UI styling refined for consistency and compactness, including specific adjustments to the Participant Dashboard layout (conditional actions, replaced status Alert with StatusBanner).
 
 ## Known Issues
 * (Minor) Participant dashboard still uses `.winnerCard` style which could be merged into common styles or simplified.

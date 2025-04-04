@@ -106,9 +106,20 @@ export const OwnerDashboard: FC = () => {
       onSuccess: (hash: `0x${string}`) => { // Added type for hash
         console.log(`Transaction submitted (${functionName}): ${hash}`);
         setCurrentTxHash(hash); // Store the hash to monitor
-        // Update toast to indicate waiting for confirmation
+        // Update toast to indicate waiting for confirmation, include full hash using JSX
         if (currentToastId.current) {
-          toast.update(currentToastId.current, { render: "Transaction submitted, waiting for confirmation...", type: "info", isLoading: true });
+          toast.update(currentToastId.current, {
+            render: (
+              <div>
+                <div>Transaction submitted, waiting for confirmation...</div>
+                <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
+                  Tx Hash: {hash}
+                </div>
+              </div>
+            ),
+            type: "info",
+            isLoading: true
+          });
         }
       },
       onError: (error: Error) => { // Added type for error
@@ -164,11 +175,34 @@ export const OwnerDashboard: FC = () => {
     const errorMessagePrefix = actionErrorMessages[pendingAction] || 'Transaction failed';
 
     if (isConfirming && currentToastId.current) {
-      // Update toast while confirming
-      toast.update(currentToastId.current, { render: "Confirming transaction...", type: "info", isLoading: true });
+      // Update toast while confirming, include full hash using JSX
+      toast.update(currentToastId.current, {
+        render: (
+          <div>
+            <div>Confirming transaction...</div>
+            <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
+              Tx Hash: {currentTxHash}
+            </div>
+          </div>
+        ),
+        type: "info",
+        isLoading: true
+      });
     } else if (isConfirmed && currentToastId.current) {
-      // Update toast on success
-      toast.update(currentToastId.current, { render: successMessage, type: "success", isLoading: false, autoClose: 5000 });
+      // Update toast on success, include full hash using JSX
+      toast.update(currentToastId.current, {
+        render: (
+          <div>
+            <div>{successMessage}</div>
+            <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
+              Tx Hash: {currentTxHash}
+            </div>
+          </div>
+        ),
+        type: "success",
+        isLoading: false,
+        autoClose: 5000
+      });
       console.log(`Transaction confirmed (${pendingAction}): ${currentTxHash}`);
 
       // Perform refetching *after* confirmation
@@ -290,7 +324,7 @@ export const OwnerDashboard: FC = () => {
             />
             <Button
               onClick={handleDepositPrize}
-              disabled={isWritePending || !depositAmount} // Use isWritePending directly
+              disabled={!!currentTxHash || isWritePending || !depositAmount} // Disable if tx pending or writing or no amount
               className={styles.actionButton}
             >
               {isWritePending && pendingAction === 'depositPrize' ? 'Depositing...' : 'Deposit Prize'}
@@ -319,7 +353,7 @@ export const OwnerDashboard: FC = () => {
         {currentState === 0 && (
             <Button
               onClick={handleStartLottery}
-              disabled={isWritePending} // Use isWritePending directly
+              disabled={!!currentTxHash || isWritePending} // Disable if tx pending or writing
               className={styles.actionButton}
             >
               {isWritePending && pendingAction === 'startLottery' ? 'Starting...' : 'Start Lottery'}
@@ -330,7 +364,7 @@ export const OwnerDashboard: FC = () => {
         {currentState === 1 && (
             <Button
               onClick={handleEndLottery}
-              disabled={isWritePending} // Use isWritePending directly
+              disabled={!!currentTxHash || isWritePending} // Disable if tx pending or writing
               className={styles.actionButton}
             >
               {isWritePending && pendingAction === 'endLottery' ? 'Ending...' : 'End Lottery'}
@@ -340,8 +374,8 @@ export const OwnerDashboard: FC = () => {
         {/* Pick Winner */}
           <Button
             onClick={handlePickWinner}
-            // Disable if not Inactive, or winner already picked, or no participants, or prize is zero, or write is pending
-            disabled={isWritePending || currentState !== 0 || isWinnerPicked === undefined || isWinnerPicked || participantCount === 0n || currentPrize === 0n}
+            // Disable if tx pending, or writing, or not Inactive, or winner already picked, or no participants, or prize is zero
+            disabled={!!currentTxHash || isWritePending || currentState !== 0 || isWinnerPicked === undefined || isWinnerPicked || participantCount === 0n || currentPrize === 0n}
             className={styles.actionButton}
           >
             {isWritePending && pendingAction === 'pickWinner' ? 'Picking...' : 'Pick Winner'}
@@ -350,8 +384,8 @@ export const OwnerDashboard: FC = () => {
          {/* Reset Lottery */}
           <Button
             onClick={handleResetLottery}
-            // Disable if winner not picked yet or write is pending
-            disabled={isWritePending || isWinnerPicked === undefined || !isWinnerPicked}
+            // Disable if tx pending, or writing, or winner not picked yet
+            disabled={!!currentTxHash || isWritePending || isWinnerPicked === undefined || !isWinnerPicked}
             className={styles.actionButton}
           >
             {isWritePending && pendingAction === 'resetLottery' ? 'Resetting...' : 'Reset Lottery'}

@@ -47,9 +47,14 @@
     * Implemented conditional rendering for Start/End Lottery buttons.
     * Refactored status display to a more compact row-based layout, removing "Winner Picked" redundancy.
     * Moved Deposit action into the status section in Owner dashboard.
+    * Updated `OwnerDashboard.tsx` and `ParticipantDashboard.tsx` to display the full transaction hash in loading/success toasts (using JSX in the `render` option) and disable action buttons while a transaction is pending (`currentTxHash` is set).
+    * Created new `StatusBanner` component (`frontend/src/components/StatusBanner/`) for compact status display.
+    * Refined `ParticipantDashboard.tsx`:
+        * Conditionally rendered the "Actions" section (hidden if user has entered).
+        * Replaced the large `Alert` component with the new `StatusBanner` for displaying entry/win status below the main details section.
 
 ## Next Steps
-1.  Perform thorough testing of the frontend interactions (including toast notifications).
+1.  Perform thorough testing of the frontend interactions (including toast notifications, conditional rendering, and StatusBanner display).
 2.  (Optional) Document security considerations (esp. conditional randomness).
 3.  (Optional) Document security considerations (esp. conditional randomness).
 5.  (Optional) Prepare/finalize deployment scripts.
@@ -69,6 +74,7 @@
 * Tracking specific pending action (`pendingAction` state) to show loading state only on the relevant button.
 * Storing transaction hash (`currentTxHash`) to monitor confirmation status.
 * Using `useEffect` to react to changes in transaction confirmation status (`useWaitForTransactionReceipt`) and update toast/refetch data accordingly.
+* Disabling action buttons using `disabled={!!currentTxHash}` while a transaction is pending confirmation.
 
 ## Important Patterns & Preferences
 * Following TDD approach (Red-Green-Refactor)
