@@ -17,6 +17,9 @@
 
   > p {
     color: var(--brand-extra-dark);
+    max-width: 450px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .icon {
@@ -40,6 +43,10 @@
 
   .checkIcon {
     fill: var(--green);
+  }
+
+  .infoIcon {
+    fill: var(--brand-orange, #f59e0b);
   }
 }
 

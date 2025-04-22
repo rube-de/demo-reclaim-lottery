@@ -1,26 +1,40 @@
-import { FC, useMemo, useState, useEffect, useRef } from 'react' // Added useEffect, useRef
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi' // Added useWaitForTransactionReceipt back
+import { FC, useMemo, useState, useEffect, useRef, useCallback } from 'react'
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
 import { formatEther, zeroAddress } from 'viem'
-import { toast, Id as ToastId } from 'react-toastify' // Import toast and Id type
+import { toast, Id as ToastId } from 'react-toastify'
+import { Proof } from '@reclaimprotocol/js-sdk';
 import { WAGMI_CONTRACT_CONFIG, WagmiUseReadContractReturnType } from '../../constants/config';
 import { Button } from '../../components/Button';
-// import { Alert } from '../../components/Alert'; // No longer using Alert here
-import { StatusBanner } from '../../components/StatusBanner'; // Import the new component
+import { StatusBanner } from '../../components/StatusBanner';
+import ReclaimDemo from '../../components/Reclaim/Reclaim';
+import { Alert } from '../../components/Alert';
 import commonStyles from './DashboardCommon.module.css';
-import participantStyles from './ParticipantDasboard.module.css';
+import participantStyles from './ParticipantDashboard.module.css';
 
-// Removed TransactionStatus type and useTransactionState hook
 
 export const ParticipantDashboard: FC = () => {
   const { address } = useAccount()
   const queryClient = useQueryClient()
-  const [pendingAction, setPendingAction] = useState<string | null>(null); // State to track specific pending action
-  const [currentTxHash, setCurrentTxHash] = useState<`0x${string}` | undefined>(undefined); // State for the current transaction hash
-  const currentToastId = useRef<ToastId | null>(null); // Ref to store the current toast ID
-  // Removed lastTxStatus and lastTxAction state
+
+  // --- Component State ---
+  const [pendingAction, setPendingAction] = useState<string | null>(null); // Tracks ongoing contract write actions
+  const [currentTxHash, setCurrentTxHash] = useState<`0x${string}` | undefined>(undefined); // Stores hash of pending tx
+  const currentToastId = useRef<ToastId | null>(null); // Ref to manage toast notifications
+  const [reclaimProofs, setReclaimProofs] = useState<Proof[]>([]); // Stores generated Reclaim proofs
+  const [proofState, setProofState] = useState<'idle' | 'generating' | 'generated' | 'error'>('idle'); // Tracks UI state for proof generation
+  const [isFollowingVerified, setIsFollowingVerified] = useState<boolean | null>(null); // null: unchecked, true: verified, false: not following
+  const [followingErrorMessage, setFollowingErrorMessage] = useState<string>(''); // Error message specific to following status check
 
   // --- Read Contract Data ---
+
+  // Fetch the required Twitter handle from the contract (public state variable)
+  const { data: requiredTwitterHandle } = useReadContract({
+    ...WAGMI_CONTRACT_CONFIG,
+    functionName: 'requiredScreenName',
+  }) satisfies WagmiUseReadContractReturnType<'requiredScreenName', string>;
+
+  // Fetch main lottery details
   const {
     data: lotteryDetails,
     refetch: refetchLotteryDetails,
@@ -35,108 +49,175 @@ export const ParticipantDashboard: FC = () => {
     readonly [number, bigint, bigint, bigint, boolean]
   >
 
-  // Extract details
-  const currentState = useMemo(() => lotteryDetails?.[0], [lotteryDetails])
-  const participantCount = useMemo(() => lotteryDetails?.[1], [lotteryDetails])
-  const currentPrize = useMemo(() => lotteryDetails?.[2], [lotteryDetails])
-  const maxAllowedParticipants = useMemo(() => lotteryDetails?.[3], [lotteryDetails])
-  const isWinnerPicked = useMemo(() => lotteryDetails?.[4], [lotteryDetails])
-
-  // Map enum state
-  const lotteryStateString = useMemo(() => {
-    if (isLoadingLotteryDetails) return 'Loading...'
-    if (isErrorLotteryDetails) return `Error: ${errorLotteryDetails?.shortMessage || errorLotteryDetails?.message}`
-    switch (currentState) {
-      case 0: return 'Inactive'
-      case 1: return 'Active'
-      default: return 'Unknown State'
-    }
-  }, [currentState, isLoadingLotteryDetails, isErrorLotteryDetails, errorLotteryDetails])
-
-  // Fetch participant list to check if current user has entered
+  // Fetch participant list to check if user has entered
   const { data: participantsList, refetch: refetchParticipantsList, isLoading: isLoadingParticipants } = useReadContract({
     ...WAGMI_CONTRACT_CONFIG,
     functionName: 'getParticipants',
     query: {
-      enabled: !!address,
+      enabled: !!address, // Only fetch if address is available
     },
   }) satisfies WagmiUseReadContractReturnType<'getParticipants', readonly `0x${string}`[]>
 
-  // Check if current address is in the list
-  const hasEntered = useMemo(() => {
-    if (!address || !participantsList) return false;
-    return participantsList.some((p: `0x${string}`) => p.toLowerCase() === address.toLowerCase());
-  }, [address, participantsList]);
-
-  // Fetch winner address
+  // Fetch the winner address (only enabled if lottery ended and winner picked)
   const { data: winnerAddress, refetch: refetchWinnerAddress } = useReadContract({
     ...WAGMI_CONTRACT_CONFIG,
     functionName: 'lotteryWinner',
     query: {
-      enabled: currentState === 0 && isWinnerPicked === true,
+      enabled: lotteryDetails?.[0] === 0 && lotteryDetails?.[4] === true, // Only fetch if Inactive and winnerPicked
     }
   }) satisfies WagmiUseReadContractReturnType<'lotteryWinner', `0x${string}`>
 
-  // Check if the current user is the winner
-  const isCurrentUserWinner = useMemo(() => {
-    if (!address || !winnerAddress || winnerAddress === zeroAddress) return false;
-    return winnerAddress.toLowerCase() === address.toLowerCase();
-  }, [address, winnerAddress]);
 
-  // --- Write Contract Logic ---
-  const { writeContract, isPending: isWritePending, reset: resetWriteContract } = useWriteContract() // Added reset
+  // --- Callbacks ---
 
-  // Handle Enter Lottery
+  // Callback triggered by ReclaimDemo when a proof is successfully generated by the user.
+  // Performs client-side validation of the proof context.
+  const handleProofGenerated = useCallback((proofs: Proof[]) => {
+    setReclaimProofs(proofs);
+    setProofState('generated');
+    setIsFollowingVerified(null); // Reset verification status on new proof
+    setFollowingErrorMessage('');
+
+    if (proofs && proofs.length > 0) {
+      const firstProof = proofs[0];
+      try {
+        // Perform client-side check: Parse context JSON to verify 'following' status
+        const contextData = JSON.parse(firstProof.claimData.context);
+        const isFollowing = contextData?.extractedParameters?.following === 'true';
+
+        if (isFollowing) {
+          setIsFollowingVerified(true);
+          toast.success('Attestation proof generated and verified successfully!');
+        } else {
+          // Set state to indicate user is not following the required account
+          setIsFollowingVerified(false);
+          const handle = requiredTwitterHandle ?? 'the required account'; // Use fetched handle or fallback
+          setFollowingErrorMessage(`Proof verified, but it shows you are not following @${handle}. Entry is disabled.`);
+          toast.warn(`Proof generated, but verification failed: Not following @${handle}.`);
+        }
+      } catch (error) {
+        // Handle potential errors during JSON parsing
+        console.error("Error parsing proof context:", error);
+        setIsFollowingVerified(false);
+        setFollowingErrorMessage('Failed to parse proof context. Cannot verify following status.');
+        toast.error('Error processing proof context.');
+        setProofState('error');
+      }
+    } else {
+      // Handle case where Reclaim SDK might return an empty/invalid proof array
+      setIsFollowingVerified(false);
+      setFollowingErrorMessage('No valid proof received.');
+      setProofState('error');
+    }
+  }, [requiredTwitterHandle]);
+
+  // Hook for contract write operations (entering the lottery)
+  const { writeContract, isPending: isWritePending, reset: resetWriteContract } = useWriteContract();
+
+  // Handles the submission of the Reclaim proof to the 'enter' function of the Lottery contract.
   const handleEnterLottery = () => {
+    if (proofState !== 'generated' || reclaimProofs.length === 0) {
+      toast.error('Please generate the required attestation proof first.');
+      return;
+    }
+
+    // Select the first proof (assuming only one is needed/generated)
+    const proofArg = reclaimProofs[0];
+
+    // Format the proof object to match the structure expected by the Solidity contract's 'enter' function.
+    // Note: Ensure this matches the IReclaimVerifier.Proof struct definition.
+    const formattedProofArg = {
+      claimInfo: {
+        provider: proofArg.claimData.provider,
+        parameters: proofArg.claimData.parameters,
+        context: proofArg.claimData.context,
+      },
+      signedClaim: {
+        signatures: proofArg.signatures,
+        claim: {
+          identifier: proofArg.identifier,
+          owner: proofArg.claimData.owner,
+          timestampS: Number(proofArg.claimData.timestampS) >>> 0, // Ensure uint32
+          epoch: proofArg.claimData.epoch,
+        }
+      }
+    };
+
     const functionName = 'enter';
-    const loadingMessage = 'Submitting transaction...'; // Initial toast message
-    const successMessage = 'Successfully entered lottery!';
+    const loadingMessage = 'Submitting transaction...';
     const errorMessagePrefix = 'Failed to enter lottery';
 
-    // Dismiss any existing toast
+    // Manage toast notifications for transaction status
     if (currentToastId.current) {
       toast.dismiss(currentToastId.current);
     }
-    currentToastId.current = toast.loading(loadingMessage); // Show initial toast
-    setPendingAction(functionName); // Set the specific action being processed
+    currentToastId.current = toast.loading(loadingMessage);
+    setPendingAction(functionName); // Track which action is pending
 
-    writeContract({
-      ...WAGMI_CONTRACT_CONFIG,
-      functionName,
-    }, {
-      onSuccess: (hash: `0x${string}`) => {
-        console.log(`Transaction submitted (${functionName}): ${hash}`);
-        setCurrentTxHash(hash); // Store hash to monitor
-        // Update toast to indicate waiting for confirmation, include full hash using JSX
-        if (currentToastId.current) {
-          toast.update(currentToastId.current, {
-            render: (
-              <div>
-                <div>Transaction submitted, waiting for confirmation...</div>
-                <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
-                  Tx Hash: {hash}
+    // Call the 'enter' function on the contract
+    writeContract(
+      {
+        ...WAGMI_CONTRACT_CONFIG,
+        functionName,
+        args: [formattedProofArg], // Pass the formatted proof object
+      },
+      { // Transaction callbacks
+        onSuccess: (hash: `0x${string}`) => {
+          console.log(`Transaction submitted (${functionName}): ${hash}`);
+          setCurrentTxHash(hash); // Store hash to monitor receipt
+          if (currentToastId.current) {
+            // Update toast to show pending confirmation
+            toast.update(currentToastId.current, {
+              render: (
+                <div>
+                  <div>Transaction submitted, waiting for confirmation...</div>
+                  <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
+                    Tx Hash: {hash}
+                  </div>
                 </div>
-              </div>
-            ),
-            type: "info",
-            isLoading: true
-          });
-        }
-      },
-      onError: (error: Error) => {
-        console.error(`Transaction submission error (${functionName}):`, error);
-        if (currentToastId.current) {
-          toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${error.message}`, type: "error", isLoading: false, autoClose: 5000 });
-        } else {
-          toast.error(`${errorMessagePrefix}: ${error.message}`);
-        }
-        resetWriteContract();
-        setPendingAction(null);
-        setCurrentTxHash(undefined);
-        currentToastId.current = null;
-      },
-    });
+              ),
+              type: "info",
+              isLoading: true
+            });
+          }
+        },
+        onError: (error: Error) => {
+          console.error(`Transaction submission error (${functionName}):`, error);
+          let displayError = error.message;
+          // Attempt to parse custom Solidity errors from Reclaim verification
+          if (error.message.includes('InvalidAttestation')) {
+            const match = error.message.match(/InvalidAttestation\("([^"]*)"\)/);
+            if (match && match[1]) {
+              displayError = `Attestation Error: ${match[1]}`; // Extract reason if available
+            } else {
+              displayError = 'Invalid Attestation Proof'; // Generic message if reason parsing fails
+            }
+          }
+
+          // Update toast on submission error
+          if (currentToastId.current) {
+            toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${displayError}`, type: "error", isLoading: false, autoClose: 5000 });
+          } else {
+            toast.error(`${errorMessagePrefix}: ${displayError}`);
+          }
+          resetWriteContract();
+          setPendingAction(null);
+          setCurrentTxHash(undefined);
+          currentToastId.current = null;
+        },
+      }
+    );
   }
+
+  // --- Effects ---
+
+  // Reset following verification status if proof generation is restarted (state goes back to idle/generating)
+  useEffect(() => {
+    if (proofState !== 'generated' && proofState !== 'error') {
+      setIsFollowingVerified(null);
+      setFollowingErrorMessage('');
+    }
+  }, [proofState]);
 
   // Hook to monitor the transaction receipt
   const {
@@ -147,22 +228,20 @@ export const ParticipantDashboard: FC = () => {
   } = useWaitForTransactionReceipt({
     hash: currentTxHash,
     query: {
-      enabled: !!currentTxHash,
+      enabled: !!currentTxHash, // Only run when a transaction hash is set
     },
   });
 
-  // Effect to update toast based on transaction confirmation status
+  // Effect to update toast based on transaction confirmation status and refetch data
   useEffect(() => {
-    if (!currentTxHash || !pendingAction) return;
-
-    // Only handle 'enter' action in this dashboard
-    if (pendingAction !== 'enter') return;
+    if (!currentTxHash || !pendingAction) return; // Ignore if no tx pending
+    if (pendingAction !== 'enter') return; // Only handle 'enter' actions here
 
     const successMessage = 'Successfully entered lottery!';
     const errorMessagePrefix = 'Failed to enter lottery';
 
     if (isConfirming && currentToastId.current) {
-      // Update toast while confirming, include full hash using JSX
+      // Update toast while transaction is confirming
       toast.update(currentToastId.current, {
         render: (
           <div>
@@ -176,7 +255,7 @@ export const ParticipantDashboard: FC = () => {
         isLoading: true
       });
     } else if (isConfirmed && currentToastId.current) {
-      // Update toast on success, include full hash using JSX
+      // Update toast on successful confirmation
       toast.update(currentToastId.current, {
         render: (
           <div>
@@ -192,17 +271,16 @@ export const ParticipantDashboard: FC = () => {
       });
       console.log(`Transaction confirmed (${pendingAction}): ${currentTxHash}`);
 
-      // Refetch data *after* confirmation
+      // Invalidate React Query cache and refetch relevant contract data after successful entry
       const detailsQueryKey: readonly unknown[] = [WAGMI_CONTRACT_CONFIG.address, 'getLotteryDetails', undefined];
       const participantsQueryKey: readonly unknown[] = [WAGMI_CONTRACT_CONFIG.address, 'getParticipants', undefined];
       queryClient.invalidateQueries({ queryKey: detailsQueryKey });
       queryClient.invalidateQueries({ queryKey: participantsQueryKey });
-      refetchLotteryDetails();
+      refetchLotteryDetails(); // Trigger refetch
       refetchParticipantsList();
-      // Refetch winner address too, in case the lottery ended and winner was picked while confirming
-      refetchWinnerAddress();
+      refetchWinnerAddress(); // Refetch winner in case lottery ended concurrently
 
-      // Reset state
+      // Reset state after handling confirmation
       resetWriteContract();
       setPendingAction(null);
       setCurrentTxHash(undefined);
@@ -213,35 +291,64 @@ export const ParticipantDashboard: FC = () => {
       toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${errorReason}`, type: "error", isLoading: false, autoClose: 5000 });
       console.error(`Transaction confirmation error (${pendingAction}):`, confirmationError);
 
-      // Reset state
+      // Reset state after handling error
       resetWriteContract();
       setPendingAction(null);
       setCurrentTxHash(undefined);
       currentToastId.current = null;
     }
-    // Added refetchWinnerAddress to dependencies
   }, [isConfirming, isConfirmed, isConfirmationError, confirmationError, currentTxHash, pendingAction, queryClient, refetchLotteryDetails, refetchParticipantsList, refetchWinnerAddress, resetWriteContract]);
 
 
-  // Determine if user can enter
+  // --- Memoized Values (Derived State) ---
+
+  const currentState = useMemo(() => lotteryDetails?.[0], [lotteryDetails])
+  const participantCount = useMemo(() => lotteryDetails?.[1], [lotteryDetails])
+  const currentPrize = useMemo(() => lotteryDetails?.[2], [lotteryDetails])
+  const maxAllowedParticipants = useMemo(() => lotteryDetails?.[3], [lotteryDetails])
+  const isWinnerPicked = useMemo(() => lotteryDetails?.[4], [lotteryDetails])
+
+  // Map numeric lottery status to human-readable string
+  const lotteryStateString = useMemo(() => {
+    if (isLoadingLotteryDetails) return 'Loading...'
+    if (isErrorLotteryDetails) return `Error: ${errorLotteryDetails?.shortMessage || errorLotteryDetails?.message}`
+    switch (currentState) {
+      case 0: return 'Inactive'
+      case 1: return 'Active'
+      default: return 'Unknown State'
+    }
+  }, [currentState, isLoadingLotteryDetails, isErrorLotteryDetails, errorLotteryDetails])
+
+  // Check if the current connected address has already entered the lottery
+  const hasEntered = useMemo(() => {
+    if (!address || !participantsList) return false;
+    return participantsList.some((p: `0x${string}`) => p.toLowerCase() === address.toLowerCase());
+  }, [address, participantsList]);
+
+  // Check if the current connected address is the winner
+  const isCurrentUserWinner = useMemo(() => {
+    if (!address || !winnerAddress || winnerAddress === zeroAddress) return false;
+    return winnerAddress.toLowerCase() === address.toLowerCase();
+  }, [address, winnerAddress]);
+
+  // Check if the lottery has reached its participant capacity
   const isLotteryFull = useMemo(() => {
     if (participantCount === undefined || maxAllowedParticipants === undefined) return false;
     return participantCount >= maxAllowedParticipants;
   }, [participantCount, maxAllowedParticipants]);
 
-  const canEnter = currentState === 1 && !hasEntered && !isLotteryFull;
+  // Determine if the user meets all conditions to enter the lottery
+  const canEnter = currentState === 1 && !hasEntered && !isLotteryFull && proofState === 'generated' && isFollowingVerified === true;
 
-  // Removed getErrorMessage function and errorMessage variable
+  // --- Render Logic ---
 
   return (
     <div className={commonStyles.dashboardContainer}>
-      {/* Welcome Section Removed */}
 
-      {/* Status Section */}
+      {/* Lottery Status Section */}
       <div>
         <h4>Lottery Status</h4>
         <div className={commonStyles.statusSection}>
-          {/* Row 1: State & Participants */}
           <div className={commonStyles.statusDisplayRow}>
             <div className={commonStyles.statItem}>
               <div className={commonStyles.statLabel}>Current State</div>
@@ -254,7 +361,6 @@ export const ParticipantDashboard: FC = () => {
               </div>
             </div>
 
-            {/* Prize Pool - Row 2 */}
           </div>
           <div className={commonStyles.statusDisplayRow}>
             <div className={commonStyles.statItem}>
@@ -264,64 +370,118 @@ export const ParticipantDashboard: FC = () => {
               </div>
             </div>
 
-            {/* Winner Picked Removed */}
           </div>
 
-          {/* Winner Display - Row 3 (Conditional) */}
+          {/* Display Winner Info if picked */}
           {isWinnerPicked && winnerAddress && winnerAddress !== zeroAddress && (
             <div className={commonStyles.statusDisplayRow}>
-              {/* Using winnerCard style for now, could be simplified */}
               <div className={`${participantStyles.winnerCard} ${commonStyles.statItem}`} style={{width: '100%'}}>
                 <div className={commonStyles.statLabel}>Winner</div>
                 <div className={participantStyles.winnerAddress}>{winnerAddress}</div>
               </div>
             </div>
           )}
-        </div> {/* End of commonStyles.statusSection */}
+        </div>
       </div>
 
-      {/* Participant Status Banner & Message (Moved Below Status Section) */}
+      {/* Display banner if user has entered */}
       {hasEntered && (
         <StatusBanner type={isCurrentUserWinner ? "success" : "info"}>
           {isCurrentUserWinner ? (
-            <strong>🎉 Congratulations! You won this lottery! 🎉</strong> // Use strong tag directly
+            <strong>🎉 Congratulations! You won this lottery! 🎉</strong>
           ) : (
             <strong>You have entered this lottery!</strong>
           )}
         </StatusBanner>
       )}
+      {/* Display message if lottery ended and user didn't win */}
       {isWinnerPicked && hasEntered && !isCurrentUserWinner && (
-        <div className={commonStyles.infoMessage} style={{ textAlign: 'center', marginTop: '0.5rem' }}> {/* Adjusted margin */}
+        <div className={commonStyles.infoMessage} style={{ textAlign: 'center', marginTop: '0.5rem' }}>
           Better luck next time!
         </div>
       )}
 
-      {/* Actions Section - Conditionally Rendered */}
-      {!hasEntered && (
+      {/* Display entry section only if user hasn't entered and lottery is running */}
+      {!hasEntered && currentState !== 0 && !isWinnerPicked && (
         <div className={commonStyles.actionsSection}>
-          <h4>Actions</h4>
-          <div>
-          <Button
-            onClick={handleEnterLottery}
-            disabled={!!currentTxHash || isWritePending || isLoadingLotteryDetails || isLoadingParticipants || !canEnter || isWinnerPicked} // Disable if tx pending or other conditions
-            className={commonStyles.actionButton}
-          >
-            {isWritePending && pendingAction === 'enter' ? 'Processing...' : 'Enter Lottery'}
-          </Button>
+          <h4>Entry Requirements</h4>
+          <div className={participantStyles.reclaimContainer}>
+            <p style={{ textAlign: 'center' }}>
+              To enter, you must prove you follow @{requiredTwitterHandle ?? '...'} on Twitter.
+            </p>
+
+            {/* Display instructions based on proof generation state */}
+            {proofState === 'idle' && <p style={{ textAlign: 'center' }}>Click below to generate the proof.</p>}
+            {proofState === 'generating' && <p style={{ textAlign: 'center' }}>Generating proof... Follow instructions in the Reclaim app.</p>}
+
+            {/* Display Alert based on proof verification outcome */}
+            {proofState === 'generated' && isFollowingVerified === true && (
+              <Alert type="success" headerText="Verification Successful">
+                Proof generated and verified successfully! You can now enter the lottery.
+              </Alert>
+            )}
+            {proofState === 'generated' && isFollowingVerified === false && (
+              <Alert
+                type="info"
+                headerText="Verification Issue"
+                actions={ // Provide a retry button
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setProofState('idle')} // Reset state to allow retry
+                  >
+                    Try Again
+                  </Button>
+                }
+              >
+                {followingErrorMessage} Please follow @{requiredTwitterHandle ?? 'the required account'} and try generating the proof again.
+              </Alert>
+            )}
+            {proofState === 'error' && (
+              <Alert
+                type="error"
+                headerText="Proof Generation Failed"
+                 actions={ // Provide a retry button
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setProofState('idle')} // Reset state to allow retry
+                  >
+                    Try Again
+                  </Button>
+                }
+              >
+                {followingErrorMessage || 'An error occurred during proof generation. Please try again.'}
+              </Alert>
+            )}
+
+            {/* Render the Reclaim component only when proof needs generation */}
+            {(proofState === 'idle' || proofState === 'generating') && (
+              <ReclaimDemo onProofGenerated={handleProofGenerated} />
+            )}
+          </div>
+
+          {/* Enter Lottery Button Container */}
+          <div className={commonStyles.centerButtonContainer}>
+            <Button
+              onClick={handleEnterLottery}
+              disabled={!canEnter || !!currentTxHash || isWritePending} // Simplified disabled logic using canEnter
+              className={commonStyles.actionButton}
+            >
+              {isWritePending && pendingAction === 'enter' ? 'Processing...' : 'Enter Lottery'}
+            </Button>
+          </div>
 
           {/* Display reasons why entry might be disabled */}
-          {!isWritePending && !isLoadingLotteryDetails && !isLoadingParticipants && ( // Check loading states too
-            <div className={commonStyles.infoMessage}>
-              {currentState !== 1 && !isWinnerPicked && 'Lottery is not active for entry.'}
-              {currentState === 1 && hasEntered && !isWinnerPicked && 'You have already entered.'}
-              {currentState === 1 && !hasEntered && isLotteryFull && !isWinnerPicked && 'Lottery is full.'}
-              {isWinnerPicked && 'Lottery has ended.'}
+          {!isWritePending && !isLoadingLotteryDetails && !isLoadingParticipants && (
+            <div className={commonStyles.infoMessage} style={{ textAlign: 'center' }}>
+              {proofState !== 'generated' && 'Please generate the attestation proof first.'}
+              {proofState === 'generated' && isFollowingVerified === true && currentState !== 1 && 'Lottery is not active for entry.'}
+              {proofState === 'generated' && isFollowingVerified === true && currentState === 1 && isLotteryFull && 'Lottery is full.'}
             </div>
           )}
-          </div>
         </div>
       )}
-      {/* Transaction Status/Error Messages Section Removed */}
     </div>
   )
 }

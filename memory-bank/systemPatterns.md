@@ -23,10 +23,19 @@
     - Falls back to insecure `keccak256(abi.encodePacked(block.prevrandao, block.timestamp, participantCount))` on other networks (e.g., Hardhat local).
     - Trade-off: Provides secure randomness on target networks while allowing testing/development on standard EVM chains.
 
+4. **Reclaim Attestation Verification**:
+   - Solidity interface `IReclaimVerifier` defines `verifyProof`.
+   - Uses external verifier contract (mocked locally).
+   - `enter()` calls verifier before accepting participant.
+   - Mock contract simulates success/failure for tests.
+   - Frontend generates proof via Reclaim SDK, performs an initial check on the proof's context data (e.g., 'following' status), reads `requiredScreenName` from contract via `useReadContract`, formats the proof, and submits it with `enter()`.
+
 ## Design Patterns in Use
 * **Ownership Pattern**: Using OpenZeppelin's Ownable for admin functions
 * **Guard Check Pattern**: ReentrancyGuard for secure prize distribution
 * **Event-Condition-Action**: Emitting events for all state changes
+* **External Verifier Pattern**: Calls external contract to validate off-chain attestation.
+* **Mocking Pattern**: Mock verifier used in local/test deployments.
 
 ## Component Relationships
 ```mermaid
@@ -66,12 +75,14 @@ flowchart TD
     *   `constants/`: Application-wide constants.
     *   `types/`: Shared TypeScript definitions.
     *   `utils/`: Common utility functions.
+    *   `icons/`: Local SVG icon components (`LogoIcon` remains, `CheckIcon`, `CancelIcon` likely unused).
 *   **State Management:**
-    *   **Server State:** TanStack Query (React Query) for fetching, caching, and managing data from the blockchain/backend.
+    *   **Server State:** TanStack Query (React Query) for fetching, caching, and managing data from the blockchain/backend (including contract state like `requiredScreenName`).
     *   **Shared UI State:** React Context API (`providers/`) for global state like authentication status or theme.
     *   **Local Component State:** `useState`/`useReducer` for state confined to individual components.
     *   **Web3 Interaction:** Abstracted via Wagmi hooks, RainbowKit for wallet connection, and custom hooks (`useWeb3Auth`). Sapphire compatibility handled by specific wrappers.
     *   **Data Refetching:** Uses React Query's `invalidateQueries` followed by Wagmi's explicit `refetch()` function in transaction success handlers to ensure immediate UI updates.
+*   **Icons:** Uses `react-material-symbols` library for consistent iconography.
 
 ```mermaid
 graph TD
