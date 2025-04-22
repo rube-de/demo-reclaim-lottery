@@ -1,4 +1,4 @@
-import { FC, useMemo, useState, useEffect, useRef, useCallback } from 'react' // Added useCallback
+import { FC, useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
 import { formatEther, zeroAddress } from 'viem'
@@ -20,13 +20,55 @@ export const ParticipantDashboard: FC = () => {
   const currentToastId = useRef<ToastId | null>(null);
   const [reclaimProofs, setReclaimProofs] = useState<Proof[]>([]); // State for Reclaim proofs
   const [proofState, setProofState] = useState<'idle' | 'generating' | 'generated' | 'error'>('idle'); // State for proof generation UI
+  const [isFollowingVerified, setIsFollowingVerified] = useState<boolean | null>(null); // null: not checked, true: verified, false: not following
+  const [followingErrorMessage, setFollowingErrorMessage] = useState<string>(''); // Error message if not following
 
   // --- Callbacks ---
   const handleProofGenerated = useCallback((proofs: Proof[]) => {
     setReclaimProofs(proofs);
     setProofState('generated');
-    toast.success('Attestation proof generated successfully!');
+    setIsFollowingVerified(null); // Reset verification status
+    setFollowingErrorMessage('');
+
+    if (proofs && proofs.length > 0) {
+      const firstProof = proofs[0];
+      try {
+        // Safely parse proof context
+        const contextData = JSON.parse(firstProof.claimData.context);
+        // Check the 'following' status directly within extractedParameters
+        const isFollowing = contextData?.extractedParameters?.following === 'true';
+
+        if (isFollowing) {
+          setIsFollowingVerified(true);
+          toast.success('Attestation proof generated and verified successfully!');
+        } else {
+          setIsFollowingVerified(false);
+          setFollowingErrorMessage('Proof verified, but it shows you are not following the required account. Entry is disabled.');
+          toast.warn('Proof generated, but verification failed: Not following required account.');
+        }
+      } catch (error) {
+        console.error("Error parsing proof context:", error);
+        setIsFollowingVerified(false); // Treat parsing errors as verification failure
+        setFollowingErrorMessage('Failed to parse proof context. Cannot verify following status.');
+        toast.error('Error processing proof context.');
+        setProofState('error'); // Set proof state to error if context parsing fails
+      }
+    } else {
+      // Handle case where proofs array is empty or undefined
+      setIsFollowingVerified(false);
+      setFollowingErrorMessage('No valid proof received.');
+      setProofState('error');
+    }
   }, []);
+
+  // Reset following verification if proof state changes back from generated/error
+  useEffect(() => {
+    if (proofState !== 'generated' && proofState !== 'error') {
+      setIsFollowingVerified(null);
+      setFollowingErrorMessage('');
+    }
+  }, [proofState]);
+
 
   // --- Read Contract Data ---
   const {
@@ -281,8 +323,8 @@ export const ParticipantDashboard: FC = () => {
     return participantCount >= maxAllowedParticipants;
   }, [participantCount, maxAllowedParticipants]);
 
-  // Update canEnter logic to include proof state
-  const canEnter = currentState === 1 && !hasEntered && !isLotteryFull && proofState === 'generated';
+  // Update canEnter logic to include proof state and following verification
+  const canEnter = currentState === 1 && !hasEntered && !isLotteryFull && proofState === 'generated' && isFollowingVerified === true;
 
   return (
     <div className={commonStyles.dashboardContainer}>
@@ -356,8 +398,9 @@ export const ParticipantDashboard: FC = () => {
             <p>To enter, you must prove you follow @oasisprotocol on Twitter.</p>
             {proofState === 'idle' && <p>Click below to generate the proof.</p>}
             {proofState === 'generating' && <p>Generating proof... Follow instructions in the Reclaim app.</p>}
-            {proofState === 'generated' && <p style={{ color: 'green', fontWeight: 'bold' }}>✅ Proof generated successfully!</p>}
-            {proofState === 'error' && <p style={{ color: 'red' }}>Proof generation failed. Please try again.</p>}
+            {proofState === 'generated' && isFollowingVerified === true && <p style={{ color: 'green', fontWeight: 'bold' }}>✅ Proof generated and verified successfully!</p>}
+            {proofState === 'generated' && isFollowingVerified === false && <p style={{ color: 'orange', fontWeight: 'bold' }}>⚠️ {followingErrorMessage}</p>}
+            {proofState === 'error' && <p style={{ color: 'red' }}>{followingErrorMessage || 'Proof generation failed. Please try again.'}</p>}
 
             <ReclaimDemo onProofGenerated={handleProofGenerated} />
             {/* Consider adding a retry button if proofState === 'error' */}
@@ -374,6 +417,7 @@ export const ParticipantDashboard: FC = () => {
                 isLoadingLotteryDetails ||
                 isLoadingParticipants ||
                 proofState !== 'generated' || // Must have generated proof
+                isFollowingVerified !== true || // Must have verified following status
                 currentState !== 1 || // Lottery must be active
                 hasEntered || // Must not have entered
                 isLotteryFull || // Lottery must not be full
@@ -388,9 +432,9 @@ export const ParticipantDashboard: FC = () => {
             {!isWritePending && !isLoadingLotteryDetails && !isLoadingParticipants && (
               <div className={commonStyles.infoMessage}>
                 {proofState !== 'generated' && 'Please generate the attestation proof first.'}
-                {proofState === 'generated' && currentState !== 1 && 'Lottery is not active for entry.'}
-                {/* Removed redundant checks covered by button logic */}
-                {proofState === 'generated' && currentState === 1 && isLotteryFull && 'Lottery is full.'}
+                {proofState === 'generated' && isFollowingVerified !== true && (followingErrorMessage || 'Proof verification pending or failed.')}
+                {proofState === 'generated' && isFollowingVerified === true && currentState !== 1 && 'Lottery is not active for entry.'}
+                {proofState === 'generated' && isFollowingVerified === true && currentState === 1 && isLotteryFull && 'Lottery is full.'}
               </div>
             )}
           </div>

@@ -182,5 +182,6 @@ npm run test
     * Uses Reclaim SDK to generate proof.
     * Displays QR code for user to scan.
     * Receives proof callback.
+    * **Parses proof context data client-side to verify required conditions (e.g., 'following' status) before enabling submission.**
     * Formats proof to Solidity struct.
-    * Submits proof with `enter()` transaction.
+    * Submits proof with `enter()` transaction only if client-side check passes.

@@ -147,9 +147,8 @@ export default function ReclaimDemo({ onProofGenerated }: ReclaimDemoProps) {
       {status === 'success' && proofs && proofs.length > 0 && (
         <div className="w-full max-w-2xl p-4 border border-green-300 bg-green-50 dark:bg-green-900/20 rounded-lg">
           <h2 className="text-xl font-bold mb-2 text-green-700 dark:text-green-300">Verification Successful!</h2>
-          <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-auto max-h-96">
-            {JSON.stringify(proofs, null, 2)}
-          </pre>
+          {/* Removed proof logging as requested */}
+          <p>Your attestation proof has been generated.</p>
         </div>
       )}
     </div>

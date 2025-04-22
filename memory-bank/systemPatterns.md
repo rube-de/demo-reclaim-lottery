@@ -28,7 +28,7 @@
    - Uses external verifier contract (mocked locally).
    - `enter()` calls verifier before accepting participant.
    - Mock contract simulates success/failure for tests.
-   - Frontend generates proof via Reclaim SDK, formats it, and submits with `enter()`.
+   - Frontend generates proof via Reclaim SDK, performs an initial check on the proof's context data (e.g., 'following' status), formats the proof, and submits it with `enter()`.
 
 ## Design Patterns in Use
 * **Ownership Pattern**: Using OpenZeppelin's Ownable for admin functions
