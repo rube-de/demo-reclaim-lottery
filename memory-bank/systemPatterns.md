@@ -23,10 +23,19 @@
     - Falls back to insecure `keccak256(abi.encodePacked(block.prevrandao, block.timestamp, participantCount))` on other networks (e.g., Hardhat local).
     - Trade-off: Provides secure randomness on target networks while allowing testing/development on standard EVM chains.
 
+4. **Reclaim Attestation Verification**:
+   - Solidity interface `IReclaimVerifier` defines `verifyProof`.
+   - Uses external verifier contract (mocked locally).
+   - `enter()` calls verifier before accepting participant.
+   - Mock contract simulates success/failure for tests.
+   - Frontend generates proof via Reclaim SDK, formats it, and submits with `enter()`.
+
 ## Design Patterns in Use
 * **Ownership Pattern**: Using OpenZeppelin's Ownable for admin functions
 * **Guard Check Pattern**: ReentrancyGuard for secure prize distribution
 * **Event-Condition-Action**: Emitting events for all state changes
+* **External Verifier Pattern**: Calls external contract to validate off-chain attestation.
+* **Mocking Pattern**: Mock verifier used in local/test deployments.
 
 ## Component Relationships
 ```mermaid

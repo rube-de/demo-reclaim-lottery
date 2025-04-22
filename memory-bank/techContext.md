@@ -9,6 +9,7 @@
 * **Ethers.js**: ^5.7.2 (for testing)
 * **Chai**: ^4.3.7 (assertion library)
 * **TypeScript**: ^4.9.5 (for backend tests and scripts)
+* **@reclaimprotocol/verifier-solidity-sdk**: Solidity verifier interface and mock
 
 ### Frontend
 * **Framework**: React v18.3.1
@@ -33,6 +34,9 @@
     * Icons: `@material-design-icons/svg`, `@metamask/jazzicon`
 * **Testing**: Playwright v1.47.2 (End-to-End)
 * **Other**: `react-responsive` (Responsive design helpers)
+* **Reclaim SDK**:
+    * `@reclaimprotocol/js-sdk` (proof generation)
+    * `react-qr-code` (QR code display)
 
 ## Development Setup
 
@@ -110,6 +114,8 @@ npm run test
 - EnumerableSet for efficient participant tracking
 - ReentrancyGuard for prize distribution safety
 - Owner-restricted critical functions
+- Integrated Reclaim verifier interface and mock contract
+- `enter()` calls verifier before accepting participant
 
 ### Frontend
 - Using Vite for fast development and build performance.
@@ -117,6 +123,8 @@ npm run test
 - RainbowKit for a standard wallet connection experience.
 - TanStack Query for managing server state and caching API data.
 - CSS Modules for scoped styling.
+- Integrated Reclaim SDK for proof generation and submission
+- Formats proof data to match Solidity struct
 
 ## Technical Constraints
 
@@ -136,6 +144,7 @@ npm run test
   - Ownable: For owner-restricted functions
   - EnumerableSet: For efficient participant management
   - ReentrancyGuard: For secure prize distribution
+* **@reclaimprotocol/verifier-solidity-sdk**: Solidity verifier interface and mock
 
 ### Frontend (Key Libraries)
 * **React/ReactDOM**: Core UI library
@@ -145,6 +154,8 @@ npm run test
 * **React Router**: Client-side routing
 * **SIWE**: Authentication
 * **react-toastify**: Toast notifications
+* **@reclaimprotocol/js-sdk**: Reclaim proof generation
+* **react-qr-code**: QR code display
 
 ## Tool Usage Patterns
 
@@ -156,6 +167,10 @@ npm run test
     * Full coverage for all functions.
     * Edge case testing (0 participants, max participants).
     * **Sapphire Specifics:** Conditional testing for events (`if (network.name === 'hardhat')`). Different revert checking logic for Hardhat (`revertedWithCustomError`) vs. Sapphire (`try/catch`, `await tx.wait()`, check error message string).
+* **Reclaim Integration:**
+    * Solidity interface `IReclaimVerifier` imported.
+    * Mock verifier contract used in local/test.
+    * `enter()` calls verifier before accepting participant.
 
 ### Frontend (Vite/React/TypeScript)
 * Functional components with Hooks preferred.
@@ -163,3 +178,9 @@ npm run test
 * CSS Modules for styling.
 * Custom hooks for reusable logic (e.g., `useAppState`, `useWeb3Auth`).
 * Playwright for end-to-end testing.
+* **Reclaim Integration:**
+    * Uses Reclaim SDK to generate proof.
+    * Displays QR code for user to scan.
+    * Receives proof callback.
+    * Formats proof to Solidity struct.
+    * Submits proof with `enter()` transaction.

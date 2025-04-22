@@ -8,9 +8,10 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; // Corrected path for OZ v5+
 import {Sapphire} from "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol"; // Import Sapphire library
+import {IReclaimVerifier} from "./interfaces/IReclaimVerifier.sol"; // Import updated Reclaim interface
 
 /**
- * @title Decentralized Lottery Contract
+ * @title Decentralized Lottery Contract with Reclaim Attestation
  * @dev A contract for managing a decentralized lottery system
  */
 contract Lottery is Ownable, ReentrancyGuard {
@@ -33,6 +34,12 @@ contract Lottery is Ownable, ReentrancyGuard {
     error AlreadyEntered();
     error InvalidRandomBytesLength();
 
+    // Reclaim verification errors
+    error InvalidAttestationProofNotValid();
+    error InvalidAttestationScreenNameMismatch(string expected, string actual);
+    error InvalidAttestationFollowingStatus(string actual);
+    error InvalidAttestationEmptyScreenName();
+
     // ====================================================================
     // Types
     // ====================================================================
@@ -47,6 +54,8 @@ contract Lottery is Ownable, ReentrancyGuard {
     uint256 public prizeAmount;
     bool public winnerPicked;
     address public lotteryWinner; // Variable to store the winner's address
+    IReclaimVerifier public reclaimVerifier; // Use the interface type
+    string public requiredScreenName; // Required Twitter handle
 
     // ====================================================================
     // Events
@@ -61,9 +70,17 @@ contract Lottery is Ownable, ReentrancyGuard {
     // ====================================================================
     // Constructor
     // ====================================================================
-    constructor(uint256 _maxParticipants) Ownable(msg.sender) {
+    constructor(
+        uint256 _maxParticipants,
+        address _reclaimVerifierAddress,
+        string memory _requiredScreenName
+    ) Ownable(msg.sender) {
+        // require(_reclaimVerifierAddress != address(0), "Invalid Reclaim Verifier address");
+        // require(bytes(_requiredScreenName).length > 0, InvalidAttestationEmptyScreenName());
         lotteryStatus = LotteryStatus.Inactive;
         maxParticipants = _maxParticipants;
+        reclaimVerifier = IReclaimVerifier(_reclaimVerifierAddress);
+        requiredScreenName = _requiredScreenName;
     }
 
     // ====================================================================
@@ -157,10 +174,32 @@ contract Lottery is Ownable, ReentrancyGuard {
      * @notice Only works when lottery is active
      * @notice Each address can only enter once
      * @notice Maximum participants is enforced
+     * @notice Requires a valid Reclaim proof verified by the configured reclaimVerifier contract
+     * @param _proof The Reclaim proof data structure matching IReclaimVerifier.Proof
      */
-    function enter() external {
+    function enter(IReclaimVerifier.Proof calldata _proof) external {
         require(lotteryStatus == LotteryStatus.Active, LotteryNotActive());
         require(participants.length() < maxParticipants, LotteryFull());
+
+        // --- Reclaim Proof Verification ---
+        bool proofValid = reclaimVerifier.verifyProof(_proof);
+        require(proofValid, InvalidAttestationProofNotValid());
+
+        string memory extractedScreenName = reclaimVerifier.extractFieldFromContext(_proof.claimInfo.context, "screen_name");
+        string memory extractedFollowing = reclaimVerifier.extractFieldFromContext(_proof.claimInfo.context, "following");
+
+        require(
+            keccak256(abi.encodePacked(extractedScreenName)) == keccak256(abi.encodePacked(requiredScreenName)),
+            InvalidAttestationScreenNameMismatch(requiredScreenName, extractedScreenName)
+        );
+
+        require(
+            keccak256(abi.encodePacked(extractedFollowing)) == keccak256(abi.encodePacked("true")),
+            InvalidAttestationFollowingStatus(extractedFollowing)
+        );
+
+        // --- End Reclaim Verification ---
+
         require(participants.add(msg.sender), AlreadyEntered());
         emit ParticipantEntered(msg.sender);
     }

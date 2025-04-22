@@ -1,24 +1,32 @@
-import { FC, useMemo, useState, useEffect, useRef } from 'react' // Added useEffect, useRef
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi' // Added useWaitForTransactionReceipt back
+import { FC, useMemo, useState, useEffect, useRef, useCallback } from 'react' // Added useCallback
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
 import { formatEther, zeroAddress } from 'viem'
-import { toast, Id as ToastId } from 'react-toastify' // Import toast and Id type
+import { toast, Id as ToastId } from 'react-toastify'
+import { Proof } from '@reclaimprotocol/js-sdk'; // Import Reclaim Proof type
 import { WAGMI_CONTRACT_CONFIG, WagmiUseReadContractReturnType } from '../../constants/config';
 import { Button } from '../../components/Button';
-// import { Alert } from '../../components/Alert'; // No longer using Alert here
-import { StatusBanner } from '../../components/StatusBanner'; // Import the new component
+import { StatusBanner } from '../../components/StatusBanner';
+import ReclaimDemo from '../../components/Reclaim/Reclaim'; // Import ReclaimDemo
 import commonStyles from './DashboardCommon.module.css';
 import participantStyles from './ParticipantDasboard.module.css';
 
-// Removed TransactionStatus type and useTransactionState hook
 
 export const ParticipantDashboard: FC = () => {
   const { address } = useAccount()
   const queryClient = useQueryClient()
-  const [pendingAction, setPendingAction] = useState<string | null>(null); // State to track specific pending action
-  const [currentTxHash, setCurrentTxHash] = useState<`0x${string}` | undefined>(undefined); // State for the current transaction hash
-  const currentToastId = useRef<ToastId | null>(null); // Ref to store the current toast ID
-  // Removed lastTxStatus and lastTxAction state
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [currentTxHash, setCurrentTxHash] = useState<`0x${string}` | undefined>(undefined);
+  const currentToastId = useRef<ToastId | null>(null);
+  const [reclaimProofs, setReclaimProofs] = useState<Proof[]>([]); // State for Reclaim proofs
+  const [proofState, setProofState] = useState<'idle' | 'generating' | 'generated' | 'error'>('idle'); // State for proof generation UI
+
+  // --- Callbacks ---
+  const handleProofGenerated = useCallback((proofs: Proof[]) => {
+    setReclaimProofs(proofs);
+    setProofState('generated');
+    toast.success('Attestation proof generated successfully!');
+  }, []);
 
   // --- Read Contract Data ---
   const {
@@ -84,58 +92,102 @@ export const ParticipantDashboard: FC = () => {
   }, [address, winnerAddress]);
 
   // --- Write Contract Logic ---
-  const { writeContract, isPending: isWritePending, reset: resetWriteContract } = useWriteContract() // Added reset
+  const { writeContract, isPending: isWritePending, reset: resetWriteContract } = useWriteContract()
 
   // Handle Enter Lottery
   const handleEnterLottery = () => {
+    if (proofState !== 'generated' || reclaimProofs.length === 0) {
+      toast.error('Please generate the required attestation proof first.');
+      return;
+    }
+
+    // --- Prepare Proof Data for Smart Contract ---
+    // This part needs careful implementation based on how the Reclaim.Proof struct is defined in Solidity
+    // and what data the `enter` function expects. Assuming it needs the whole proof object for now.
+    // You might need to serialize or format specific fields.
+    const proofArg = reclaimProofs[0]; // Assuming the first proof is the relevant one
+
+    const formattedProofArg = {
+      claimInfo: {
+        provider: proofArg.claimData.provider,
+        parameters: proofArg.claimData.parameters,
+        context: proofArg.claimData.context,
+      },
+      signedClaim: {
+        signatures: proofArg.signatures,
+        claim: {
+          identifier: proofArg.identifier,
+          owner: proofArg.claimData.owner,
+          timestampS: Number(proofArg.claimData.timestampS) >>> 0,
+          epoch: proofArg.claimData.epoch,
+        }
+      }
+    };
+    // --- End Proof Data Preparation ---
+
+
     const functionName = 'enter';
-    const loadingMessage = 'Submitting transaction...'; // Initial toast message
-    const successMessage = 'Successfully entered lottery!';
+    const loadingMessage = 'Submitting transaction...';
     const errorMessagePrefix = 'Failed to enter lottery';
 
-    // Dismiss any existing toast
     if (currentToastId.current) {
       toast.dismiss(currentToastId.current);
     }
     currentToastId.current = toast.loading(loadingMessage); // Show initial toast
     setPendingAction(functionName); // Set the specific action being processed
 
-    writeContract({
-      ...WAGMI_CONTRACT_CONFIG,
-      functionName,
-    }, {
-      onSuccess: (hash: `0x${string}`) => {
-        console.log(`Transaction submitted (${functionName}): ${hash}`);
-        setCurrentTxHash(hash); // Store hash to monitor
-        // Update toast to indicate waiting for confirmation, include full hash using JSX
-        if (currentToastId.current) {
-          toast.update(currentToastId.current, {
-            render: (
-              <div>
-                <div>Transaction submitted, waiting for confirmation...</div>
-                <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
-                  Tx Hash: {hash}
+    // Corrected writeContract structure
+    writeContract(
+      { // First argument: configuration
+        ...WAGMI_CONTRACT_CONFIG,
+        functionName,
+        args: [formattedProofArg], // Pass the formatted proof
+      },
+      { // Second argument: options object
+        onSuccess: (hash: `0x${string}`) => {
+          console.log(`Transaction submitted (${functionName}): ${hash}`);
+          setCurrentTxHash(hash);
+          if (currentToastId.current) {
+            toast.update(currentToastId.current, {
+              render: (
+                <div>
+                  <div>Transaction submitted, waiting for confirmation...</div>
+                  <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
+                    Tx Hash: {hash}
+                  </div>
                 </div>
-              </div>
-            ),
-            type: "info",
-            isLoading: true
-          });
-        }
-      },
-      onError: (error: Error) => {
-        console.error(`Transaction submission error (${functionName}):`, error);
-        if (currentToastId.current) {
-          toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${error.message}`, type: "error", isLoading: false, autoClose: 5000 });
-        } else {
-          toast.error(`${errorMessagePrefix}: ${error.message}`);
-        }
-        resetWriteContract();
-        setPendingAction(null);
-        setCurrentTxHash(undefined);
-        currentToastId.current = null;
-      },
-    });
+              ),
+              type: "info",
+              isLoading: true
+            });
+          }
+        },
+        onError: (error: Error) => {
+          console.error(`Transaction submission error (${functionName}):`, error);
+          // Attempt to parse custom error
+          let displayError = error.message;
+          if (error.message.includes('InvalidAttestation')) {
+            // Basic parsing, might need refinement based on actual error format
+            const match = error.message.match(/InvalidAttestation\("([^"]*)"\)/);
+            if (match && match[1]) {
+              displayError = `Attestation Error: ${match[1]}`;
+            } else {
+              displayError = 'Invalid Attestation Proof';
+            }
+          }
+
+          if (currentToastId.current) {
+            toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${displayError}`, type: "error", isLoading: false, autoClose: 5000 });
+          } else {
+            toast.error(`${errorMessagePrefix}: ${displayError}`);
+          }
+          resetWriteContract();
+          setPendingAction(null);
+          setCurrentTxHash(undefined);
+          currentToastId.current = null;
+        },
+      }
+    );
   }
 
   // Hook to monitor the transaction receipt
@@ -229,9 +281,8 @@ export const ParticipantDashboard: FC = () => {
     return participantCount >= maxAllowedParticipants;
   }, [participantCount, maxAllowedParticipants]);
 
-  const canEnter = currentState === 1 && !hasEntered && !isLotteryFull;
-
-  // Removed getErrorMessage function and errorMessage variable
+  // Update canEnter logic to include proof state
+  const canEnter = currentState === 1 && !hasEntered && !isLotteryFull && proofState === 'generated';
 
   return (
     <div className={commonStyles.dashboardContainer}>
@@ -297,31 +348,54 @@ export const ParticipantDashboard: FC = () => {
       )}
 
       {/* Actions Section - Conditionally Rendered */}
-      {!hasEntered && (
+      {!hasEntered && currentState !== 0 && !isWinnerPicked && ( // Only show actions if not entered and lottery hasn't ended
         <div className={commonStyles.actionsSection}>
-          <h4>Actions</h4>
-          <div>
-          <Button
-            onClick={handleEnterLottery}
-            disabled={!!currentTxHash || isWritePending || isLoadingLotteryDetails || isLoadingParticipants || !canEnter || isWinnerPicked} // Disable if tx pending or other conditions
-            className={commonStyles.actionButton}
-          >
-            {isWritePending && pendingAction === 'enter' ? 'Processing...' : 'Enter Lottery'}
-          </Button>
+          <h4>Entry Requirements</h4>
+          {/* Reclaim Proof Generation */}
+          <div style={{ marginBottom: '1rem' }}>
+            <p>To enter, you must prove you follow @oasisprotocol on Twitter.</p>
+            {proofState === 'idle' && <p>Click below to generate the proof.</p>}
+            {proofState === 'generating' && <p>Generating proof... Follow instructions in the Reclaim app.</p>}
+            {proofState === 'generated' && <p style={{ color: 'green', fontWeight: 'bold' }}>✅ Proof generated successfully!</p>}
+            {proofState === 'error' && <p style={{ color: 'red' }}>Proof generation failed. Please try again.</p>}
 
-          {/* Display reasons why entry might be disabled */}
-          {!isWritePending && !isLoadingLotteryDetails && !isLoadingParticipants && ( // Check loading states too
-            <div className={commonStyles.infoMessage}>
-              {currentState !== 1 && !isWinnerPicked && 'Lottery is not active for entry.'}
-              {currentState === 1 && hasEntered && !isWinnerPicked && 'You have already entered.'}
-              {currentState === 1 && !hasEntered && isLotteryFull && !isWinnerPicked && 'Lottery is full.'}
-              {isWinnerPicked && 'Lottery has ended.'}
-            </div>
-          )}
+            <ReclaimDemo onProofGenerated={handleProofGenerated} />
+            {/* Consider adding a retry button if proofState === 'error' */}
+          </div>
+
+          {/* Enter Lottery Button */}
+          <div>
+            <Button
+              onClick={handleEnterLottery}
+              // Updated disabled logic
+              disabled={
+                !!currentTxHash ||
+                isWritePending ||
+                isLoadingLotteryDetails ||
+                isLoadingParticipants ||
+                proofState !== 'generated' || // Must have generated proof
+                currentState !== 1 || // Lottery must be active
+                hasEntered || // Must not have entered
+                isLotteryFull || // Lottery must not be full
+                isWinnerPicked // Lottery must not have ended
+              }
+              className={commonStyles.actionButton}
+            >
+              {isWritePending && pendingAction === 'enter' ? 'Processing...' : 'Enter Lottery'}
+            </Button>
+
+            {/* Display reasons why entry might be disabled */}
+            {!isWritePending && !isLoadingLotteryDetails && !isLoadingParticipants && (
+              <div className={commonStyles.infoMessage}>
+                {proofState !== 'generated' && 'Please generate the attestation proof first.'}
+                {proofState === 'generated' && currentState !== 1 && 'Lottery is not active for entry.'}
+                {/* Removed redundant checks covered by button logic */}
+                {proofState === 'generated' && currentState === 1 && isLotteryFull && 'Lottery is full.'}
+              </div>
+            )}
           </div>
         </div>
       )}
-      {/* Transaction Status/Error Messages Section Removed */}
     </div>
   )
 }
