@@ -39,3 +39,11 @@
   /* .statusMessages, .txHash, .infoMessage, .successText moved to common */
 
 /* Removed .entryStatusAlert styles as the Alert is now outside the status section */
+
+.reclaimContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center items horizontally */
+  width: 100%;
+  margin-bottom: 1rem; /* Keep existing margin */
+}

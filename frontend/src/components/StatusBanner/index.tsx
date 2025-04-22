@@ -1,7 +1,7 @@
 import { FC, PropsWithChildren, ReactElement } from 'react';
-import { StringUtils } from '../../utils/string.utils'; // Assuming StringUtils is available
-import { CheckIcon } from '../icons/CheckIcon'; // Reusing CheckIcon for success/info
-import { CancelIcon } from '../icons/CancelIcon'; // Reusing CancelIcon for error
+import { StringUtils } from '../../utils/string.utils';
+import { MaterialSymbol } from 'react-material-symbols';
+import 'react-material-symbols/rounded'; // Import the rounded style for Material Symbols
 import classes from './index.module.css';
 
 type StatusBannerType = 'success' | 'info' | 'error';
@@ -17,11 +17,11 @@ const typeStyles: Record<StatusBannerType, string> = {
   error: classes.bannerError,
 };
 
+// Map banner types to corresponding Material Symbols icons
 const typeIcons: Record<StatusBannerType, ReactElement> = {
-  // Using CheckIcon for both success and info for simplicity, adjust if needed
-  success: <CheckIcon className={classes.icon} />,
-  info: <CheckIcon className={classes.icon} />,
-  error: <CancelIcon className={classes.icon} />,
+  success: <MaterialSymbol icon="check_circle" size={24} grade={200} className={classes.icon} />,
+  info: <MaterialSymbol icon="info" size={24} grade={200} className={classes.icon} />,
+  error: <MaterialSymbol icon="cancel" size={24} grade={200} className={classes.icon} />,
 };
 
 export const StatusBanner: FC<Props> = ({

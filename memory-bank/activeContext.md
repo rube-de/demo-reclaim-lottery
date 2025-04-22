@@ -1,34 +1,39 @@
 # Active Context
 
 ## Current Focus
-* Refining frontend Reclaim integration in `ParticipantDashboard.tsx`.
-* Ensuring correct parsing of proof context data (`extractedParameters.following`).
-* Providing clear user feedback based on frontend proof validation.
-* Updating memory bank files.
+* Updating memory bank files (`systemPatterns.md`, `techContext.md`, `progress.md`) to reflect recent UI changes, dependency updates, and code cleanup/comment restoration.
 
 ## Recent Changes
-* **Frontend (`ParticipantDashboard.tsx`):**
-    * Removed raw proof JSON logging from `ReclaimDemo.tsx`.
-    * Added state (`isFollowingVerified`, `followingErrorMessage`) to track frontend validation status.
-    * Modified `handleProofGenerated` callback to parse proof context (`extractedParameters.following`) and update validation state.
-    * Updated "Enter Lottery" button `disabled` logic and surrounding UI messages based on `isFollowingVerified`.
-    * Added and subsequently removed debug `console.log` statements for context parsing.
-* **Memory Bank:** Updated `systemPatterns.md` and `techContext.md` to reflect frontend validation.
-* **Task Log:** Created and updated `.cline/task-log_22-04-25-19-43.log`.
+* **Frontend UI (`ParticipantDashboard.tsx`, `Reclaim.tsx`, `Alert.tsx`, `StatusBanner.tsx`, CSS Modules):**
+    * Updated icon library from `@material-design-icons/svg` to `react-material-symbols` using `pnpm`.
+    * Updated `Alert.tsx` and `StatusBanner.tsx` to use icons from the new library (`MaterialSymbol` component).
+    * Fixed layout issues in `ParticipantDashboard.tsx`:
+        * Centered introductory text elements using inline styles.
+        * Removed `max-width` from `.actionButton` class to prevent "Enter Lottery" text wrapping.
+        * Repositioned info text (`.infoMessage`) to appear below the centered "Enter Lottery" button.
+        * Ensured `.reclaimContainer` uses `align-items: center`.
+    * Added `useReadContract` hook in `ParticipantDashboard.tsx` to fetch `requiredScreenName` from the contract.
+    * Updated introductory text and "Verification Issue" alert message to dynamically display the fetched `requiredScreenName`.
+    * Cleaned up redundant comments and added/restored useful explanatory/structural comments in multiple components (`Alert.tsx`, `StatusBanner.tsx`, `ParticipantDashboard.tsx`, `Reclaim.tsx`) and CSS modules (`DashboardCommon.module.css`, `Alert.module.css`), adhering to user feedback on comment strategy.
+* **Task Logs:** Created logs for UI fixes and cleanup (`.cline/task-log_22-04-25-21-55.log` to `.cline/task-log_23-04-25-00-01.log`).
 
 ## Next Steps
-* Complete memory bank update (`progress.md`).
+* Complete memory bank update (`systemPatterns.md`, `techContext.md`, `progress.md`).
+* Consider removing unused local icons (`CheckIcon.tsx`, `CancelIcon.tsx`) now that `StatusBanner.tsx` and `Alert.tsx` use the new library.
 * Remove `backend/contracts/reclaim/Reclaim.sol` and `backend/contracts/reclaim/lib/Claims.sol` when ready.
-* Update frontend to pass the configurable screen name during deployment (if not already done).
-* Continue refining frontend dashboards and lottery features.
-* Add more tests for the new verification logic if needed.
+* Continue refining frontend dashboards and lottery features as needed.
 
 ## Active Decisions & Considerations
-* Performing initial proof validation (checking 'following' status) on the frontend provides faster user feedback and prevents unnecessary contract calls if the proof clearly doesn't meet requirements.
-* Relying on the structure observed in debug logs (`contextData.extractedParameters.following`) for parsing.
-* Using clear UI messages to inform the user about the proof validation status.
+* Switched to `react-material-symbols` for better icon support and maintainability.
+* Fetching `requiredScreenName` dynamically from the contract ensures UI matches contract configuration.
+* Using `pnpm` for package management due to workspace setup.
+* Performed code cleanup by removing redundant comments while adding/keeping explanatory ones, adhering to user feedback.
+* Used `write_to_file` as a fallback for `ParticipantDashboard.tsx` due to persistent `replace_in_file` errors after potential file state corruption, ensuring correct hook declarations and comments were restored.
 
 ## Learnings & Insights
-* **Proof Context Structure:** The relevant parameters (like `following`) are nested within `extractedParameters` inside the main context JSON, not within `contextMessage`. Careful debugging is needed to confirm data structures. Specifically, access `JSON.parse(proof.claimData.context).extractedParameters.following`.
-* Frontend validation can improve UX by catching obvious issues before submitting transactions.
-* Always verify assumptions about data structures, especially when dealing with nested JSON or external APIs/SDKs.
+* **Package Manager:** Need to use `pnpm` instead of `npm` for this workspace project.
+* **Dynamic Data:** Fetching configuration like `requiredScreenName` from the contract makes the frontend more robust than hardcoding.
+* **Icon Libraries:** Updating icon libraries can resolve import issues and provide better options. `react-material-symbols` integrates well.
+* **CSS Specificity/Layout:** Debugging layout requires checking container styles (`align-items`, `justify-content`), element styles (`max-width`), and DOM structure (nesting).
+* **Tool Reliability:** `replace_in_file` can fail if the file state changes unexpectedly between read and write, even with small changes. `write_to_file` can be a necessary fallback, but requires careful reconstruction of the file content to avoid introducing errors (like missing hook declarations).
+* **Comment Strategy:** Balance removing truly redundant comments with keeping/adding comments that explain structure (`// --- Section ---`) or non-obvious logic (`// Explain complex step`). Explicit user feedback is key to getting this right.

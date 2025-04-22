@@ -2,8 +2,9 @@ import { FC, PropsWithChildren, ReactElement } from 'react'
 import classes from './index.module.css'
 import { Card } from '../Card'
 import { StringUtils } from '../../utils/string.utils'
-import { CheckIcon } from '../icons/CheckIcon'
-import { CancelIcon } from '../icons/CancelIcon'
+import { MaterialSymbol } from 'react-material-symbols';
+import 'react-material-symbols/rounded';
+
 
 type AlertType = 'error' | 'success' | 'info'
 
@@ -12,18 +13,21 @@ interface AlertTypeValues {
   icon: ReactElement
 }
 
+const ICON_SIZE = 106;
+const ICON_GRADE = 200; // Controls weight and style, adjust as needed
+
 const alertTypeValuesMap: Record<AlertType, AlertTypeValues> = {
   error: {
     header: 'Something went wrong',
-    icon: <CancelIcon className={classes.cancelIcon} width={106} height={106} />,
+    icon: <MaterialSymbol icon="cancel" size={ICON_SIZE} grade={ICON_GRADE} className={classes.cancelIcon} />,
   },
   success: {
     header: 'Success',
-    icon: <CheckIcon className={classes.checkIcon} width={106} height={106} />,
+    icon: <MaterialSymbol icon="check_circle" size={ICON_SIZE} grade={ICON_GRADE} className={classes.checkIcon} />,
   },
   info: {
-    header: 'Information',
-    icon: <CheckIcon className={classes.checkIcon} width={106} height={106} />,
+    header: 'Information', // Using 'warning' icon for visual cue
+    icon: <MaterialSymbol icon="warning" size={ICON_SIZE} grade={ICON_GRADE} className={classes.infoIcon} />,
   },
 }
 

@@ -31,7 +31,7 @@
 * **Styling**:
     * CSS Modules (inferred from file structure)
     * Fonts: `@fontsource-variable/figtree`, `@fontsource-variable/roboto-mono`
-    * Icons: `@material-design-icons/svg`, `@metamask/jazzicon`
+    * Icons: `react-material-symbols`, `@metamask/jazzicon` (Note: Local icons `CheckIcon`, `CancelIcon` likely unused)
 * **Testing**: Playwright v1.47.2 (End-to-End)
 * **Other**: `react-responsive` (Responsive design helpers)
 * **Reclaim SDK**:
@@ -77,10 +77,10 @@ Key backend deployment features:
 * Error handling for invalid parameters
 
 ### Frontend
-1. Install dependencies:
+1. Install dependencies (Note: Uses pnpm workspace):
 ```bash
 cd frontend
-npm install # or pnpm install / yarn install depending on project setup
+pnpm install
 ```
 
 2. Run development server:
@@ -182,6 +182,9 @@ npm run test
     * Uses Reclaim SDK to generate proof.
     * Displays QR code for user to scan.
     * Receives proof callback.
-    * **Parses proof context data client-side to verify required conditions (e.g., 'following' status) before enabling submission.**
+    * Reads `requiredScreenName` from contract via `useReadContract`.
+    * Parses proof context data client-side to verify required conditions (e.g., 'following' status) before enabling submission.
     * Formats proof to Solidity struct.
     * Submits proof with `enter()` transaction only if client-side check passes.
+    * Uses `react-material-symbols` for iconography in `Alert` and `StatusBanner`.
+    * Comments reviewed and updated for clarity (removing redundant, adding/keeping explanatory).
