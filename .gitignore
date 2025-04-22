@@ -9,4 +9,4 @@ frontend/test-results
 *.env
 *.env.local
 *.env.development
-*.env.production
+*.env.productionfrontend/.env.development
