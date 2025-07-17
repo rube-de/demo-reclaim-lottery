@@ -61,20 +61,44 @@ Or to test with custom maxParticipants:
 MAX_PARTICIPANTS=5 npx hardhat test
 ```
 
-4. Deploy contract:
+4. Deploy contract using Hardhat tasks:
 ```bash
-# Deploy to local Hardhat network (testing)
-npx hardhat run scripts/deployLottery.ts --network hardhat
+# Deploy both MockReclaimVerifier and Lottery contracts
+npx hardhat deploy-all --network sapphire-localnet
 
-# Deploy to sapphire-localnet with custom maxParticipants
-npx hardhat run scripts/deployLottery.ts --network sapphire-localnet --max-participants 1000
+# Deploy only mock verifier
+npx hardhat deploy-mock-verifier --network sapphire-localnet
+
+# Deploy only lottery contract (requires verifier address)
+npx hardhat deploy-lottery --network sapphire-localnet --verifier-address 0x... --max-participants 1000
+```
+
+5. Manage lottery using tasks:
+```bash
+# Check lottery status
+npx hardhat lottery-status --network sapphire-localnet --address 0x...
+
+# Deposit prize (owner only)
+npx hardhat lottery-deposit-prize --network sapphire-localnet --address 0x... --amount 1.0
+
+# Start lottery (owner only)  
+npx hardhat lottery-start --network sapphire-localnet --address 0x...
+
+# View participants
+npx hardhat lottery-participants --network sapphire-localnet --address 0x...
+
+# End lottery and pick winner (owner only)
+npx hardhat lottery-end --network sapphire-localnet --address 0x...
+npx hardhat lottery-pick-winner --network sapphire-localnet --address 0x...
 ```
 
 Key backend deployment features:
-* Configurable maxParticipants (defaults to 1000)
-* Detailed deployment logs with contract address
-* Optional contract verification support
-* Error handling for invalid parameters
+* Comprehensive Hardhat task system for deployment and management
+* Configurable maxParticipants and requiredScreenName parameters
+* Detailed deployment logs with contract addresses
+* Complete lottery lifecycle management through tasks
+* Network-aware gas estimation and error handling
+* Built-in help system for all tasks
 
 ### Frontend
 1. Install dependencies (Note: Uses pnpm workspace):

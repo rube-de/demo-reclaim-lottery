@@ -20,7 +20,7 @@ export default function ReclaimDemo({ onProofGenerated }: ReclaimDemoProps) {
   const getVerificationReq = async () => {
     // Constants for Reclaim configuration (App ID, Secret, Provider ID)
     // TODO: Consider moving these to config or environment variables if they change per environment
-    const APP_ID = '0x6BD0647820eb0F6f318689CFd9ba340119adA9a8';
+    const APP_ID = '0x7c39aeD96CD27CF1E36EE1d13da267c19291882b';
     const APP_SECRET = VITE_RECLAIM_APPLICATION_SECRET;
     const PROVIDER_ID = '1c476dfe-33e8-4cb9-adcf-e6c1d12a5cea';
 
