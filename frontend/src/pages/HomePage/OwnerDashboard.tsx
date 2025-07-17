@@ -1,5 +1,5 @@
 import { FC, useMemo, useState, useEffect, useRef } from 'react' // Added useEffect, useRef
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi' // Added useWaitForTransactionReceipt back
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
 import { formatEther, parseEther, zeroAddress } from 'viem'
 import { toast, Id as ToastId } from 'react-toastify' // Import toast and Id type
@@ -12,7 +12,6 @@ import styles from './DashboardCommon.module.css'
 // Removed TransactionStatus type and useTransactionState hook
 
 export const OwnerDashboard: FC = () => {
-  const { address } = useAccount()
   const queryClient = useQueryClient()
 
   // --- State for Inputs ---
@@ -77,14 +76,14 @@ export const OwnerDashboard: FC = () => {
 
   // --- Write Contract Logic ---
 
-  // Generic hook setup - only need writeContract and isPending now for button state
-  const { writeContract, isPending: isWritePending, reset: resetWriteContract } = useWriteContract() // Added reset
+  // Generic hook setup - only need writeContractAsync and isPending now for button state
+  const { writeContractAsync, isPending: isWritePending, reset: resetWriteContract } = useWriteContract() // Added reset
 
   // Function to handle common transaction logic
   const handleTransaction = async (
     functionName: string,
-    loadingMessage: string, // This will be used for the button text now
-    successMessage: string,
+    _loadingMessage: string, // This will be used for the button text now
+    _successMessage: string,
     errorMessagePrefix: string,
     args?: any[],
     value?: bigint
@@ -97,46 +96,46 @@ export const OwnerDashboard: FC = () => {
     currentToastId.current = toast.loading("Submitting transaction...");
     setPendingAction(functionName); // Set the specific action being processed
 
-    writeContract({
-      ...WAGMI_CONTRACT_CONFIG,
-      functionName,
-      args,
-      value,
-    }, {
-      onSuccess: (hash: `0x${string}`) => { // Added type for hash
-        console.log(`Transaction submitted (${functionName}): ${hash}`);
-        setCurrentTxHash(hash); // Store the hash to monitor
-        // Update toast to indicate waiting for confirmation, include full hash using JSX
-        if (currentToastId.current) {
-          toast.update(currentToastId.current, {
-            render: (
-              <div>
-                <div>Transaction submitted, waiting for confirmation...</div>
-                <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
-                  Tx Hash: {hash}
-                </div>
+    try {
+      const hash = await writeContractAsync({
+        address: WAGMI_CONTRACT_CONFIG.address,
+        abi: WAGMI_CONTRACT_CONFIG.abi,
+        functionName: functionName as any,
+        args: args || [],
+        value: value || 0n,
+      });
+      
+      console.log(`Transaction submitted (${functionName}): ${hash}`);
+      setCurrentTxHash(hash); // Store the hash to monitor
+      // Update toast to indicate waiting for confirmation, include full hash using JSX
+      if (currentToastId.current) {
+        toast.update(currentToastId.current, {
+          render: (
+            <div>
+              <div>Transaction submitted, waiting for confirmation...</div>
+              <div style={{ fontSize: '0.8em', wordBreak: 'break-all', marginTop: '4px', opacity: 0.8 }}>
+                Tx Hash: {hash}
               </div>
-            ),
-            type: "info",
-            isLoading: true
-          });
-        }
-      },
-      onError: (error: Error) => { // Added type for error
-        console.error(`Transaction submission error (${functionName}):`, error);
-        // Update toast to show submission error
-        if (currentToastId.current) {
-          toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${error.message}`, type: "error", isLoading: false, autoClose: 5000 }); // Use error.message
-        } else {
-          // Fallback if toast ID wasn't set somehow
-          toast.error(`${errorMessagePrefix}: ${error.message}`); // Use error.message
-        }
-        resetWriteContract();
-        setPendingAction(null);
-        setCurrentTxHash(undefined); // Clear hash on error
-        currentToastId.current = null; // Clear toast ref
-      },
-    });
+            </div>
+          ),
+          type: "info",
+          isLoading: true
+        });
+      }
+    } catch (error: any) {
+      console.error(`Transaction submission error (${functionName}):`, error);
+      // Update toast to show submission error
+      if (currentToastId.current) {
+        toast.update(currentToastId.current, { render: `${errorMessagePrefix}: ${error.message}`, type: "error", isLoading: false, autoClose: 5000 });
+      } else {
+        // Fallback if toast ID wasn't set somehow
+        toast.error(`${errorMessagePrefix}: ${error.message}`);
+      }
+      resetWriteContract();
+      setPendingAction(null);
+      setCurrentTxHash(undefined); // Clear hash on error
+      currentToastId.current = null; // Clear toast ref
+    }
   }
 
   // Hook to monitor the transaction receipt
@@ -240,14 +239,14 @@ export const OwnerDashboard: FC = () => {
 
 
   // Specific Handlers (now just call handleTransaction)
-  const handleDepositPrize = () => {
+  const handleDepositPrize = async () => {
     try {
       const amountWei = parseEther(depositAmount || '0')
       if (amountWei <= 0n) {
         toast.error("Deposit amount must be positive.");
         return;
       }
-      handleTransaction(
+      await handleTransaction(
         'depositPrize',
         'Depositing...', // Button text during pending
         'Prize deposited successfully!',
@@ -259,25 +258,25 @@ export const OwnerDashboard: FC = () => {
       toast.error("Invalid deposit amount format.");
     }
   }
-  const handleStartLottery = () => handleTransaction(
+  const handleStartLottery = async () => await handleTransaction(
     'startLottery',
     'Starting...', // Button text during pending
     'Lottery started successfully!',
     'Failed to start lottery'
   )
-  const handleEndLottery = () => handleTransaction(
+  const handleEndLottery = async () => await handleTransaction(
     'endLottery',
     'Ending...', // Button text during pending
     'Lottery ended successfully!',
     'Failed to end lottery'
   )
-  const handlePickWinner = () => handleTransaction(
+  const handlePickWinner = async () => await handleTransaction(
     'pickWinner',
     'Picking...', // Button text during pending
     'Winner picked successfully!',
     'Failed to pick winner'
   )
-  const handleResetLottery = () => handleTransaction(
+  const handleResetLottery = async () => await handleTransaction(
     'resetLottery',
     'Resetting...', // Button text during pending
     'Lottery reset successfully!',
