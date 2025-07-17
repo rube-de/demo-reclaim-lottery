@@ -18,6 +18,19 @@
   * Has no string-based reverts for Reclaim logic anymore.
 * **MockReclaimVerifier** fully implements the interface, including `getProviderFromProof`.
 * **Deployment script** updated to pass `_requiredScreenName`.
+* **Comprehensive Hardhat task system** replacing deployment scripts:
+  - `deploy-all`: Complete deployment workflow (MockReclaimVerifier + Lottery)
+  - `deploy-lottery`: Deploy lottery contract with configurable parameters
+  - `deploy-mock-verifier`: Deploy MockReclaimVerifier for testing
+  - `lottery-status`: Check lottery status and current phase
+  - `lottery-deposit-prize`: Deposit prize (owner only)
+  - `lottery-start`: Start lottery (owner only)
+  - `lottery-end`: End lottery (owner only)
+  - `lottery-pick-winner`: Pick winner with secure randomness (owner only)
+  - `lottery-reset`: Reset for new round (owner only)
+  - `lottery-info`: Get lottery configuration details
+  - `lottery-participants`: List current participants
+  - All tasks include proper parameter validation, help system, and error handling
 * **All backend tests updated** to use the new constructor argument and mock configuration.
 * **New tests added** for invalid proof, invalid screen name, and invalid following status.
 * **All tests pass (29/29)**.
@@ -56,3 +69,4 @@
 * Updated frontend icon library for better maintainability and icon choice.
 * Refactored frontend to fetch required criteria (`requiredScreenName`) dynamically from the contract.
 * Refined comment strategy to balance cleanup with necessary documentation for clarity, based on user feedback.
+* Transitioned from deployment scripts to comprehensive Hardhat task system for better developer experience and maintainability.
